@@ -1,12 +1,9 @@
-// 后端地址：自动跟随 H5 打开地址的主机（电脑 localhost / 手机局域网 IP / 公网域名），
-// 只要 8000 端口在同一机器上开放即可。部署后如需走 nginx 同域，改为空串 "" 即可。
-const host = typeof location !== "undefined" ? location.hostname : "localhost";
-const BASE =
-  host === "localhost" || host === "127.0.0.1"
-    ? "http://localhost:8000"
-    : `http://${host}:8000`;
+// v2 纯单机：不再有后端。api.get/post/put/del 直接走路由表（utils/db.js），
+// 数据存 uni storage，飞行模式全功能可用。
+// 将来若重启服务端/小程序版，把 request() 换回 uni.request 即可，页面层不用动。
+import { localRequest } from "./db";
 
-// 轻用户：首次打开生成 user_code 存本地，之后每个请求带 X-User
+// 轻用户标识（v2 仅用于本地存储命名空间，无登录体系）
 export function getUser() {
   let u = uni.getStorageSync("user_code");
   if (!u) {
@@ -16,27 +13,8 @@ export function getUser() {
   return u;
 }
 
-// 换设备同步：手机上输入电脑的口令，直接接管那边的全部数据
-export function setUserCode(code) {
-  uni.setStorageSync("user_code", code);
-}
-
 export function request(method, path, data) {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: BASE + path,
-      method,
-      data,
-      header: { "Content-Type": "application/json", "X-User": getUser() },
-      timeout: 20000,
-      success: (res) => {
-        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
-        else
-          reject(new Error((res.data && res.data.detail) || `HTTP ${res.statusCode}`));
-      },
-      fail: (e) => reject(new Error("网络错误：" + e.errMsg)),
-    });
-  });
+  return localRequest(method, path, data);
 }
 
 export const api = {

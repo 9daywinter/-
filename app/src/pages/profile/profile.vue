@@ -80,11 +80,44 @@
       </view>
     </view>
 
+    <!-- 备份与恢复：v2 数据全在本机，换机/防丢靠 JSON -->
+    <view class="card">
+      <view class="card-title">💾 备份与恢复</view>
+      <view class="row" @click="exportBackup">
+        <text class="label">导出备份</text>
+        <text class="val">全部数据复制成 JSON 文本，存到备忘录/文件</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="row" @click="showImport = true">
+        <text class="label">导入备份</text>
+        <text class="val">粘贴备份 JSON，整体替换本机数据</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 导入弹层 -->
+    <view v-if="showImport" class="sheet-mask" @click="showImport = false">
+      <view class="sheet" @click.stop>
+        <view class="sheet-title">导入备份</view>
+        <textarea
+          v-model="importText"
+          class="import-ta"
+          placeholder="把之前导出的备份 JSON 整段粘贴到这里"
+          :maxlength="-1"
+        />
+        <view class="import-tip">⚠️ 导入会整体替换本机的课程、日程、DDL 和学期设置</view>
+        <view class="sheet-btns">
+          <button class="mini ghost-btn" @click="showImport = false">取消</button>
+          <button class="mini solid-btn" @click="doImport">替换本机数据</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import { api, getUser } from "../../utils/api";
+import { exportAll, importAll } from "../../utils/db";
 import { DAY_NAMES, TIME_STATUS } from "../../utils/slots";
 
 export default {
@@ -97,6 +130,8 @@ export default {
       changes: [],
       editing: false,
       nickDraft: "",
+      showImport: false,
+      importText: "",
     };
   },
   computed: {
@@ -149,6 +184,38 @@ export default {
     },
     goDdl() {
       uni.navigateTo({ url: "/pages/ddl/ddl" });
+    },
+    // ---- 备份与恢复（v2：数据全在本机） ----
+    exportBackup() {
+      const json = exportAll();
+      uni.setClipboardData({
+        data: json,
+        success: () => {
+          uni.showModal({
+            title: "已复制到剪贴板",
+            content: `备份共 ${json.length} 字符。打开备忘录/微信文件传输助手粘贴保存，换机或重装时用「导入备份」恢复。`,
+            showCancel: false,
+          });
+        },
+      });
+    },
+    doImport() {
+      const text = (this.importText || "").trim();
+      if (!text) {
+        uni.showToast({ title: "先粘贴备份内容", icon: "none" });
+        return;
+      }
+      let counts;
+      try {
+        counts = importAll(text);
+      } catch (e) {
+        uni.showToast({ title: e.message, icon: "none" });
+        return;
+      }
+      this.showImport = false;
+      this.importText = "";
+      uni.showToast({ title: `已导入 ${counts.courses} 课/${counts.events} 程/${counts.ddls} DDL`, icon: "none" });
+      setTimeout(() => uni.reLaunch({ url: "/pages/index/index" }), 800);
     },
     // 新学期：清空课程 → 跳学期页改开学日期 → 重新导入
     resetCourses() {
@@ -478,5 +545,59 @@ export default {
   font-size: 24rpx;
   color: #b0b5c1;
   text-align: center;
+}
+
+/* 导入备份弹层 */
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.sheet-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+}
+.import-ta {
+  width: 100%;
+  height: 260rpx;
+  background: #f5f6fa;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  font-size: 24rpx;
+  box-sizing: border-box;
+}
+.import-tip {
+  font-size: 22rpx;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 10rpx;
+  padding: 14rpx 18rpx;
+  margin-top: 16rpx;
+}
+.sheet-btns {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+.ghost-btn {
+  flex: 1;
+  color: #6b7280;
+  background: #f5f6fa;
+}
+.solid-btn {
+  flex: 2;
+  color: #fff;
+  background: #4f46e5;
 }
 </style>
