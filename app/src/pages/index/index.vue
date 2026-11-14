@@ -201,19 +201,20 @@
       </view>
     </view>
 
-    <!-- 日程详情弹层：只看，改/删去 主页 → 我的日程 -->
+    <!-- 日程详情：与课程详情同款居中框，点框外退出（改/删在添加日程页） -->
     <view v-if="showEvSheet" class="sheet-mask" @click="showEvSheet = false">
-      <view class="sheet" @click.stop>
-        <view class="sheet-title">日程详情</view>
-        <view class="detail-title">{{ evDraft.icon || defaultIcon }} {{ evDraft.title }}</view>
+      <view class="sheet center-sheet" @click.stop>
+        <view class="course-sheet-head">
+          <view class="course-sheet-title">
+            <text class="course-sheet-name">{{ evDraft.icon || defaultIcon }} {{ evDraft.title }}</text>
+          </view>
+        </view>
         <view class="detail-row"><text class="d-label">时间</text><text class="d-val">{{ evDetailTime }}</text></view>
         <view class="detail-row"><text class="d-label">状态</text><text class="d-val">{{ evStatusLabel }}</text></view>
         <view v-if="evDraft.loc" class="detail-row"><text class="d-label">地点</text><text class="d-val">{{ evDraft.loc }}</text></view>
         <view v-if="evDraft.note" class="detail-row"><text class="d-label">备注</text><text class="d-val">{{ evDraft.note }}</text></view>
-        <view v-if="evSeriesN > 1" class="detail-row"><text class="d-label">重复</text><text class="d-val">🔁 共 {{ evSeriesN }} 条（改/删按单条操作）</text></view>
-        <view class="sheet-btns">
-          <button class="btn-primary" @click="showEvSheet = false">知道了</button>
-        </view>
+        <view v-if="evSeriesN > 1" class="detail-row"><text class="d-label">重复</text><text class="d-val">🔁 共 {{ evSeriesN }} 条</text></view>
+        <view class="course-sheet-tip">点框外退出</view>
       </view>
     </view>
 
@@ -1387,12 +1388,9 @@ export default {
   font-weight: 600;
   margin-bottom: 24rpx;
 }
-/* 日程详情弹层（只读，改/删在添加日程页） */
-.detail-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  margin-bottom: 20rpx;
-}
+/* 居中详情框：课程详情在用，日程详情同款（底部 sheet 的居中变体） */
+.center-sheet { border-radius: 24rpx; margin: 0 24rpx 80rpx; width: auto; max-width: 620rpx; align-self: center; }
+/* 日程详情行 */
 .detail-row {
   display: flex;
   gap: 20rpx;
