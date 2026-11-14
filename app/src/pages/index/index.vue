@@ -1374,7 +1374,7 @@ export default {
   align-items: baseline;
 }
 .slot-time {
-  font-size: 17rpx;
+  font-size: 18rpx;
   color: #8a91a3;
   font-weight: 400;
 }
@@ -1799,10 +1799,10 @@ export default {
 }
 .narrow .slot-time {
   display: block;
-  font-size: 18rpx;
+  font-size: 20rpx;
 }
 .narrow .pad-time {
-  font-size: 24rpx;
+  font-size: 26rpx;
 }
 .narrow .ev-title {
   overflow: hidden;
@@ -1836,10 +1836,10 @@ export default {
   font-size: 19rpx;
 }
 .wide .slot-time {
-  font-size: 13rpx;
+  font-size: 14rpx;
 }
 .wide .pad-time {
-  font-size: 20rpx;
+  font-size: 22rpx;
 }
 .wide .fab {
   font-size: 21rpx;
