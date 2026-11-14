@@ -216,21 +216,27 @@
         </view>
         <view class="form-row">
           <text class="label">开始</text>
-          <picker mode="date" :value="evDraft.sd" @change="(e) => (evDraft.sd = e.detail.value)">
-            <view class="picker-val">{{ evDraft.sd }} ▾</view>
-          </picker>
-          <picker mode="time" :value="evDraft.st" @change="(e) => (evDraft.st = e.detail.value)">
-            <view class="picker-val">{{ evDraft.st }}</view>
-          </picker>
+          <view class="picker-val pick-wrap">
+            <text>{{ evDraft.sd }}</text>
+            <text class="caret">▾</text>
+            <picker class="cover" mode="date" :value="evDraft.sd" @change="(e) => (evDraft.sd = e.detail.value)"></picker>
+          </view>
+          <view class="picker-val pick-wrap">
+            <text>{{ evDraft.st }}</text>
+            <picker class="cover" mode="time" :value="evDraft.st" @change="(e) => (evDraft.st = e.detail.value)"></picker>
+          </view>
         </view>
         <view class="form-row">
           <text class="label">结束</text>
-          <picker mode="date" :value="evDraft.ed" @change="(e) => (evDraft.ed = e.detail.value)">
-            <view class="picker-val">{{ evDraft.ed }} ▾</view>
-          </picker>
-          <picker mode="time" :value="evDraft.et" @change="(e) => (evDraft.et = e.detail.value)">
-            <view class="picker-val">{{ evDraft.et }}</view>
-          </picker>
+          <view class="picker-val pick-wrap">
+            <text>{{ evDraft.ed }}</text>
+            <text class="caret">▾</text>
+            <picker class="cover" mode="date" :value="evDraft.ed" @change="(e) => (evDraft.ed = e.detail.value)"></picker>
+          </view>
+          <view class="picker-val pick-wrap">
+            <text>{{ evDraft.et }}</text>
+            <picker class="cover" mode="time" :value="evDraft.et" @change="(e) => (evDraft.et = e.detail.value)"></picker>
+          </view>
         </view>
         <view class="form-row icon-row">
           <text class="label">图标</text>
@@ -1868,6 +1874,25 @@ export default {
   padding: 14rpx 18rpx;
   font-size: 26rpx;
 }
+/* 日期/时间 picker 会垫系统原生输入框盖住文字：文字自绘，picker 透明铺满做点击区 */
+.pick-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pick-wrap .caret {
+  color: #9ca3af;
+  margin-left: 8rpx;
+}
+.cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+}
 .hint-row {
   font-size: 20rpx;
   color: #b0b5c1;
@@ -1884,9 +1909,9 @@ export default {
   font-size: 31rpx;
   border-radius: 14rpx;
   padding: 0;
-  line-height: 1;
+  line-height: 84rpx; /* 行高=按钮高：部分浏览器忽略 button 上的 flex，行高兜底垂直居中 */
   height: 84rpx;
-  display: flex; /* uni-app button 文字默认偏上，弹性居中才真正在框中间 */
+  display: flex;
   align-items: center;
   justify-content: center;
   border: none;
@@ -1900,6 +1925,7 @@ export default {
   font-size: 31rpx;
   border-radius: 14rpx;
   height: 84rpx;
+  line-height: 84rpx;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -112,18 +112,24 @@
         </view>
         <view class="form-row">
           <text class="label">{{ form.kind === 'exam' ? '开考' : '截止' }}</text>
-          <picker mode="date" :value="form.d" @change="(e) => (form.d = e.detail.value)">
-            <view class="picker-val">{{ form.d }} ▾</view>
-          </picker>
-          <picker mode="time" :value="form.t" @change="(e) => (form.t = e.detail.value)">
-            <view class="picker-val">{{ form.t }} ▾</view>
-          </picker>
+          <view class="picker-val pick-wrap">
+            <text>{{ form.d }}</text>
+            <text class="caret">▾</text>
+            <picker class="cover" mode="date" :value="form.d" @change="(e) => (form.d = e.detail.value)"></picker>
+          </view>
+          <view class="picker-val pick-wrap">
+            <text>{{ form.t }}</text>
+            <text class="caret">▾</text>
+            <picker class="cover" mode="time" :value="form.t" @change="(e) => (form.t = e.detail.value)"></picker>
+          </view>
         </view>
         <view v-if="form.kind === 'exam'" class="form-row">
           <text class="label">结束</text>
-          <picker mode="time" :value="form.examEnd" @change="(e) => (form.examEnd = e.detail.value)">
-            <view class="picker-val">{{ form.examEnd }} ▾</view>
-          </picker>
+          <view class="picker-val pick-wrap">
+            <text>{{ form.examEnd }}</text>
+            <text class="caret">▾</text>
+            <picker class="cover" mode="time" :value="form.examEnd" @change="(e) => (form.examEnd = e.detail.value)"></picker>
+          </view>
         </view>
         <view class="form-row">
           <text class="label">类型</text>
@@ -495,6 +501,10 @@ export default {
 .label { width: 120rpx; color: #6b7280; font-size: 28rpx; flex-shrink: 0; }
 .form-row input { flex: 1; font-size: 28rpx; min-width: 0; }
 .picker-val { background: #f5f6fa; border-radius: 10rpx; padding: 14rpx 20rpx; font-size: 26rpx; }
+/* 日期/时间 picker 原生输入框遮盖修复：文字自绘 + 透明点击层（同 add 页） */
+.pick-wrap { position: relative; display: flex; align-items: center; justify-content: space-between; }
+.pick-wrap .caret { color: #9ca3af; margin-left: 8rpx; }
+.cover { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; }
 .sheet-btns { display: flex; gap: 16rpx; margin-top: 32rpx; }
 .btn-plain {
   flex: 1;
@@ -503,8 +513,8 @@ export default {
   font-size: 31rpx;
   border-radius: 12rpx;
   height: 84rpx;
-  line-height: 1;
-  display: flex; /* 文字垂直居中在框中间 */
+  line-height: 84rpx; /* 行高=按钮高，兜底垂直居中（部分浏览器忽略 button 上的 flex） */
+  display: flex;
   align-items: center;
   justify-content: center;
   border: none;
@@ -516,7 +526,7 @@ export default {
   font-size: 31rpx;
   border-radius: 12rpx;
   height: 84rpx;
-  line-height: 1;
+  line-height: 84rpx;
   display: flex;
   align-items: center;
   justify-content: center;

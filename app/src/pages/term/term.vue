@@ -7,9 +7,11 @@
       </view>
       <view class="row">
         <text class="label">第一周周一</text>
-        <picker mode="date" :value="form.start_monday" @change="(e) => (form.start_monday = e.detail.value)">
-          <view class="val">{{ form.start_monday }} ▾</view>
-        </picker>
+        <view class="val pick-wrap">
+          <text>{{ form.start_monday }}</text>
+          <text class="caret">▾</text>
+          <picker class="cover" mode="date" :value="form.start_monday" @change="(e) => (form.start_monday = e.detail.value)"></picker>
+        </view>
       </view>
       <view class="row">
         <text class="label">总周数</text>
@@ -92,6 +94,10 @@ export default {
   padding: 14rpx 18rpx;
   font-size: 26rpx;
 }
+/* 日期 picker 原生输入框遮盖修复：文字自绘 + 透明点击层（同 add 页） */
+.pick-wrap { position: relative; display: flex; align-items: center; justify-content: space-between; }
+.pick-wrap .caret { color: #9ca3af; margin-left: 8rpx; }
+.cover { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; }
 .tip {
   padding: 20rpx 0;
   font-size: 22rpx;
