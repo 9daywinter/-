@@ -1422,6 +1422,7 @@ export default {
   right: 6rpx;
   border-radius: 10rpx;
   padding: 10rpx;
+  box-sizing: border-box; /* 高度按 JS 指定的整盒算，否则 content-box 会多出 20rpx 压到下一节 */
   display: flex;
   flex-direction: column;
   gap: 4rpx;
@@ -1447,6 +1448,7 @@ export default {
   right: 6rpx;
   border-radius: 10rpx;
   padding: 8rpx 10rpx;
+  box-sizing: border-box; /* 同 .course：内边距+边框计入高度，避免压到相邻时段 */
   display: flex;
   flex-direction: column;
   gap: 2rpx;
