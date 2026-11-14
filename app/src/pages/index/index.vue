@@ -652,14 +652,17 @@ export default {
         this.weekDates = dates;
         for (const ev of this.events || []) {
           const sStr = String(ev.start_at || "").slice(0, 10);
-          const startIdx = dates.indexOf(sStr);
-          if (startIdx === -1) continue;
-          // 跨天：从开始日挂到结束日（结束日超出本周就挂到周六）。
-          // 每天挂一个带 _spanDay 的副本，evGeom/computeGrid 按"落在当天的那一段"画
           const eStr = String(ev.end_at || "").slice(0, 10);
-          const endIdx = dates.indexOf(eStr);
-          const lastIdx = endIdx === -1 ? 6 : Math.max(endIdx, startIdx);
-          for (let k = startIdx; k <= Math.min(lastIdx, 6); k++) {
+          const d0 = dates[0], d6 = dates[6];
+          // 与本周日期区间无交集 → 不挂（YYYY-MM-DD 字符串比较安全）。
+          // 跨周：开始日在本周之前 → 从周一起挂；结束日在本周之后 → 挂到周日。
+          // 每天挂一个带 _spanDay 的副本，evGeom/computeGrid 按"落在当天的那一段"画
+          if (!sStr || !eStr || eStr < d0 || sStr > d6) continue;
+          const startIdx = dates.indexOf(sStr); // -1 = 开始在本周之前
+          const endIdx = dates.indexOf(eStr);   // -1 = 结束在本周之后
+          const from = startIdx === -1 ? 0 : startIdx;
+          const to = endIdx === -1 ? 6 : endIdx;
+          for (let k = from; k <= to; k++) {
             evs[k + 1].push({ ...ev, _spanDay: k + 1 });
           }
         }
