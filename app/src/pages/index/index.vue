@@ -51,7 +51,7 @@
 
       <!-- 课表头部：星期行（当天有 DDL 的列挂红色小药丸，区别于课/日程块） -->
       <view class="grid-head">
-        <view class="col-hours"></view>
+        <view v-if="hourLines.length" class="col-hours"></view>
         <view class="col-label"></view>
         <view class="col-day" v-for="d in 7" :key="d">
           <text class="day-name">周{{ DAY_NAMES[d - 1] }}</text>
@@ -64,9 +64,9 @@
         </view>
       </view>
 
-      <!-- 课表网格：小时标尺 + 节次列 + 7 天 -->
+      <!-- 课表网格：小时标尺 + 节次列 + 7 天（无留白时刻度列整体隐藏，不空占宽度） -->
       <view class="grid-body">
-        <view class="col-hours">
+        <view v-if="hourLines.length" class="col-hours">
           <view
             v-for="l in hourLines"
             :key="'h' + l.h"
@@ -1254,10 +1254,10 @@ export default {
   left: 0;
   right: 0;
   height: 1rpx;
-  background: #e9ecf2;
+  background: #d6dce6;
 }
 .grid-line.strong {
-  background: #cdd3dd;
+  background: #b8c1d0;
 }
 .col-label {
   width: 132rpx;
@@ -1375,7 +1375,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1rpx solid #f1f2f6;
+  border-bottom: 1rpx solid #e3e7ef;
 }
 .slot-no {
   font-size: 26rpx;
@@ -1407,10 +1407,10 @@ export default {
   position: absolute;
   left: 0;
   right: 0;
-  border-top: 1rpx solid #e9ecf2;
+  border-top: 1rpx solid #d6dce6;
 }
 .hour-line.strong {
-  border-top-color: #cdd3dd;
+  border-top-color: #b8c1d0;
 }
 .hour-num {
   position: absolute;
@@ -1429,11 +1429,11 @@ export default {
 .day-col {
   position: relative;
   flex: 1;
-  border-left: 1rpx solid #f1f2f6;
+  border-left: 1rpx solid #e3e7ef;
 }
 .slot-cell {
   height: 100rpx;
-  border-bottom: 1rpx solid #f1f2f6;
+  border-bottom: 1rpx solid #e3e7ef;
 }
 .pad-cell-day,
 .pad-cell {
@@ -1814,27 +1814,27 @@ export default {
   overflow: hidden;
 }
 .narrow .col-day {
-  font-size: 22rpx;
+  font-size: 24rpx;
 }
 .narrow .slot-gap {
   display: none;
 }
 /* 竖屏：节号+时刻是重要信息不丢，改为上下两行的紧凑排布 */
 .narrow .slot-no {
-  font-size: 20rpx;
+  font-size: 22rpx;
   flex-direction: column;
   gap: 2rpx;
   line-height: 1.2;
 }
 .narrow .slot-time {
   display: block;
-  font-size: 13rpx;
+  font-size: 18rpx;
 }
 .narrow .pad-tip {
   font-size: 16rpx;
 }
 .narrow .hour-num {
-  font-size: 18rpx;
+  font-size: 20rpx;
 }
 .narrow .ev-title {
   overflow: hidden;
@@ -1843,7 +1843,7 @@ export default {
   display: block;
 }
 .narrow .ev-time {
-  font-size: 18rpx;
+  font-size: 20rpx;
 }
 
 /* ---------- 横屏/宽屏（≥600px 或 w>h）：整屏宽度下 rpx 换算变大，
