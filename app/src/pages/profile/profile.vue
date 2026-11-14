@@ -30,6 +30,11 @@
     <!-- 学期与课表管理 -->
     <view class="card">
       <view class="card-title">📋 课表管理</view>
+      <view class="row" @click="goAddCourse">
+        <text class="label">添加课程</text>
+        <text class="val">手动加一门课，保存后跳回课表</text>
+        <text class="arrow">›</text>
+      </view>
       <view class="row" @click="goDdl">
         <text class="label">DDL 倒计时</text>
         <text class="val">手动记 deadline，红黄绿倒计时</text>
@@ -210,6 +215,10 @@ export default {
     },
     goDdl() {
       uni.navigateTo({ url: "/pages/ddl/ddl" });
+    },
+    goAddCourse() {
+      // 跳回课表页并自动弹加课表单（index.vue 读 ?add=1）
+      uni.reLaunch({ url: "/pages/index/index?add=1" });
     },
     // ---- 备份与恢复（v2：数据全在本机） ----
     exportBackup() {

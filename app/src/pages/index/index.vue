@@ -120,9 +120,6 @@
       </view>
     </block>
 
-    <!-- 加课按钮 -->
-    <view v-if="term" class="fab" @click="openAdd">＋ 加课</view>
-
     <!-- 课程详情：点框外直接退出（无关闭按钮），管理收进右上角 ⋯，以后好加项 -->
     <view v-if="showCourse && courseDetail" class="sheet-mask" @click="closeCourse">
       <view class="sheet course-sheet" @click.stop>
@@ -437,9 +434,17 @@ export default {
     "evDraft.et": "_evClashTick",
     "evDraft.timeStatus": "_evClashTick",
   },
+  onLoad(opts) {
+    // 主页「添加课程」跳转过来时自动弹加课表单（reLaunch 携带 ?add=1）
+    this._autoAdd = !!(opts && opts.add);
+  },
   async onShow() {
     this.updateWide();
     await this.load();
+    if (this._autoAdd) {
+      this._autoAdd = false;
+      if (this.term) this.openAdd(); // 没设学期时不弹，让用户先看到设置学期引导
+    }
   },
   mounted() {
     this.updateWide();
@@ -1510,18 +1515,6 @@ export default {
   justify-content: center;
   font-size: 24rpx;
 }
-.fab {
-  position: fixed;
-  right: 32rpx;
-  bottom: 60rpx;
-  background: #4f46e5;
-  color: #fff;
-  font-size: 28rpx;
-  padding: 20rpx 34rpx;
-  border-radius: 999rpx;
-  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.35);
-  z-index: 5; /* 课程块 z-index:1 会盖住无层级的 fixed 按钮 */
-}
 .sheet-mask {
   position: fixed;
   inset: 0;
@@ -1842,11 +1835,6 @@ export default {
 }
 .wide .pad-time {
   font-size: 22rpx;
-}
-.wide .fab {
-  font-size: 21rpx;
-  padding: 12rpx 26rpx;
-  bottom: 40rpx;
 }
 .wide .tool-btn {
   font-size: 21rpx;
