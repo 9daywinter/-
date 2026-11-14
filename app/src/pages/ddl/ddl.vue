@@ -500,20 +500,26 @@ export default {
   flex: 1;
   background: #f5f6fa;
   color: #6b7280;
-  font-size: 28rpx;
+  font-size: 31rpx;
   border-radius: 12rpx;
   height: 84rpx;
   line-height: 1;
+  display: flex; /* 文字垂直居中在框中间 */
+  align-items: center;
+  justify-content: center;
   border: none;
 }
 .btn-primary {
   flex: 2;
   background: #4f46e5;
   color: #fff;
-  font-size: 28rpx;
+  font-size: 31rpx;
   border-radius: 12rpx;
   height: 84rpx;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
 }
 .btn-primary[disabled] { opacity: 0.6; }

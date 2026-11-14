@@ -72,7 +72,7 @@
             v-for="l in hourLines"
             :key="'pt' + l.h"
             class="pad-time"
-            :style="{ top: Math.max(l.y, 14) + 'rpx' }"
+            :style="{ top: l.y + 'rpx' }"
           >{{ l.h }}:00</view>
           <view v-for="s in SLOT_COUNT" :key="s" class="slot-label">
             <text class="slot-no">{{ s }} <text class="slot-time">{{ SLOT_TIMES[s - 1][0] }}-{{ SLOT_TIMES[s - 1][1] }}</text></text>
@@ -779,8 +779,9 @@ export default {
       this.padBottomMin = padBottom;
       const lines = [];
       if (has) {
-        // 顶留白整时线：[网格顶, 首节) 每整点一条
-        for (let m = Math.ceil(g0 / 60) * 60; m < s0; m += 60)
+        // 顶留白整时线：[网格顶, 首节) 每整点一条（不含网格顶边那条——
+        // 网格顶恰逢整点时线会压在卡片边框上，标签也贴不准，宁可不画）
+        for (let m = Math.ceil((g0 + 1) / 60 - 1e-6) * 60; m < s0; m += 60)
           lines.push({ h: Math.round(m / 60), y: Math.round(this.minToYrpx(m)), strong: m % 180 === 0 });
         // 底留白整时线：(末节, 网格底) 每整点一条（不含网格底边那条，避免"24时"压在底边上）
         const gEnd = e0 + padBottom;
@@ -1880,11 +1881,14 @@ export default {
 .btn-primary {
   background: #4f46e5;
   color: #fff;
-  font-size: 28rpx;
+  font-size: 31rpx;
   border-radius: 14rpx;
   padding: 0;
   line-height: 1;
   height: 84rpx;
+  display: flex; /* uni-app button 文字默认偏上，弹性居中才真正在框中间 */
+  align-items: center;
+  justify-content: center;
   border: none;
 }
 .btn-primary::after {
@@ -1893,8 +1897,12 @@ export default {
 .btn-plain {
   background: #f1f2f6;
   color: #4b5563;
-  font-size: 28rpx;
+  font-size: 31rpx;
   border-radius: 14rpx;
+  height: 84rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
 }
 .btn-plain::after {
