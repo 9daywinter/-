@@ -2,10 +2,7 @@
   <view class="page">
     <!-- 手动添加日程（v2：纯单机版，语音/AI 预填已随 v1 冻结） -->
     <view class="card">
-      <view class="card-title-row">
-        <text class="card-title">{{ editingId ? "编辑日程" : "添加日程" }}</text>
-        <text v-if="editingId" class="cancel-edit" @click="cancelEdit">× 放弃修改</text>
-      </view>
+      <view class="card-title">{{ editingId ? "编辑日程" : "添加日程" }}</view>
       <view v-if="editingId && editingSeries > 1" class="series-edit-tip">
         🔁 这是重复日程中的一条（共 {{ editingSeries }} 条），只改这一条
       </view>
@@ -706,16 +703,6 @@ export default {
 }
 .color-chips .dot.on {
   border-color: #1f2937;
-}
-.card-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.cancel-edit {
-  font-size: 24rpx;
-  color: #6b7280;
-  padding: 6rpx 12rpx;
 }
 .series-edit-tip {
   background: #fff7ed;
