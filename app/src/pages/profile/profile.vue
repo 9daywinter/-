@@ -14,18 +14,9 @@
       </view>
       <!-- 昵称编辑 -->
       <view class="nick-editor" v-if="editing">
-        <input v-model="nickDraft" placeholder="起个名字（群组里给大家看）" maxlength="16" :focus="true" />
+        <input v-model="nickDraft" placeholder="起个名字" maxlength="16" :focus="true" />
         <button class="mini" @click="saveNick">保存</button>
         <button class="mini ghost" @click="editing = false">取消</button>
-      </view>
-      <!-- 口令：换设备同步的钥匙 -->
-      <view class="code-box">
-        <view class="code-line">
-          <text class="code-label">我的口令</text>
-          <text class="code">{{ profile.user_code }}</text>
-          <text class="copy" @click="copyCode">复制</text>
-        </view>
-        <text class="code-tip">手机/电脑凭口令互通数据；换设备前先复制存好</text>
       </view>
     </view>
 
@@ -34,7 +25,6 @@
       <view class="stat"><text class="num">{{ stats.courses }}</text><text class="lbl">课程</text></view>
       <view class="stat"><text class="num">{{ stats.events }}</text><text class="lbl">日程</text></view>
       <view class="stat"><text class="num">{{ stats.changes }}</text><text class="lbl">课表改动</text></view>
-      <view class="stat"><text class="num">{{ stats.groups }}</text><text class="lbl">群组</text></view>
     </view>
 
     <!-- 学期与课表管理 -->
@@ -42,12 +32,7 @@
       <view class="card-title">📋 课表管理</view>
       <view class="row" @click="goDdl">
         <text class="label">DDL 倒计时</text>
-        <text class="val">赶 deadline 用：抽取通知 + 智能建议</text>
-        <text class="arrow">›</text>
-      </view>
-      <view class="row" @click="goImport">
-        <text class="label">导入课表</text>
-        <text class="val">截图 / 教务文件 / 粘贴文本</text>
+        <text class="val">手动记 deadline，红黄绿倒计时</text>
         <text class="arrow">›</text>
       </view>
       <view class="row" @click="goTerm">
@@ -95,22 +80,6 @@
       </view>
     </view>
 
-    <!-- 我的群组 -->
-    <view class="card">
-      <view class="card-title">👥 我的群组（{{ stats.groups }}）</view>
-      <view v-if="!groups.length" class="empty-tip">暂无群组 · 点下面建组或口令进组</view>
-      <view v-for="g in groups" :key="g.code" class="ev-row" @click="goGroup(g.code)">
-        <text class="ev-icon">👥</text>
-        <view class="ev-mid">
-          <text class="ev-title">{{ g.name }}</text>
-          <text class="ev-sub">口令 {{ g.code }}</text>
-        </view>
-      </view>
-      <view class="btn primary" @click="goGroup()">🔑 建组 / 口令进组</view>
-    </view>
-
-    <!-- 退出登录：设备变全新用户，方便自测组队 -->
-    <view class="btn danger" @click="logout">🚪 退出登录（本机变成新用户）</view>
   </view>
 </template>
 
@@ -123,10 +92,9 @@ export default {
     return {
       profile: { user_code: getUser(), nickname: "", created_at: "" },
       term: null,
-      stats: { courses: 0, events: 0, changes: 0, groups: 0 },
+      stats: { courses: 0, events: 0, changes: 0 },
       events: [],
       changes: [],
-      groups: [],
       editing: false,
       nickDraft: "",
     };
@@ -158,13 +126,9 @@ export default {
         this.stats = s.stats;
         this.events = s.events;
         this.changes = s.changes;
-        this.groups = s.groups;
       } catch (e) {
         uni.showToast({ title: e.message, icon: "none" });
       }
-    },
-    copyCode() {
-      uni.setClipboardData({ data: this.profile.user_code });
     },
     async saveNick() {
       const name = (this.nickDraft || "").trim();
@@ -183,31 +147,8 @@ export default {
     goTerm() {
       uni.navigateTo({ url: "/pages/term/term" });
     },
-    goImport() {
-      uni.navigateTo({ url: "/pages/import/import" });
-    },
     goDdl() {
       uni.navigateTo({ url: "/pages/ddl/ddl" });
-    },
-    goGroup(code) {
-      uni.navigateTo({ url: code ? `/pages/group/group?code=${code}` : "/pages/group/group" });
-    },
-    logout() {
-      const old = getUser();
-      uni.showModal({
-        title: "退出登录",
-        content: `这台设备会变成一个全新的空白用户（你的账号口令是 ${old}，已可随时复制）。退出后可用口令换回来，确定退出？`,
-        confirmText: "退出",
-        confirmColor: "#dc2626",
-        success: (r) => {
-          if (!r.confirm) return;
-          try {
-            uni.removeStorageSync("user_code");
-            uni.removeStorageSync("ddl_dismissed_" + old);
-          } catch (e) {}
-          uni.reLaunch({ url: "/pages/index/index" });
-        },
-      });
     },
     // 新学期：清空课程 → 跳学期页改开学日期 → 重新导入
     resetCourses() {

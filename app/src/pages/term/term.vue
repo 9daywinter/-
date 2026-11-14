@@ -22,29 +22,12 @@
       </view>
     </view>
 
-    <!-- 换设备同步：手机/电脑/无痕窗口各是独立账号，凭口令互通 -->
-    <view class="card">
-      <view class="card-title">换设备同步</view>
-      <view class="tip">
-        每个浏览器是一个独立账号。在手机上输入电脑的口令，课表、日程、学期全部同步过来。
-      </view>
-      <view class="row">
-        <text class="label">我的口令</text>
-        <text class="code">{{ myCode }}</text>
-        <text class="copy" @click="copyCode">复制</text>
-      </view>
-      <view class="row">
-        <text class="label">切换到</text>
-        <input v-model="newCode" placeholder="粘贴另一设备的口令" />
-        <button class="mini" @click="switchCode">切换</button>
-      </view>
-    </view>
     <button class="save" @click="save">保存</button>
   </view>
 </template>
 
 <script>
-import { api, getUser, setUserCode } from "../../utils/api";
+import { api } from "../../utils/api";
 
 function todayStr() {
   const d = new Date();
@@ -57,25 +40,9 @@ export default {
     return {
       form: { name: "本学期", start_monday: todayStr(), total_weeks: 20 },
       weekRange: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
-      myCode: getUser(),
-      newCode: "",
     };
   },
   methods: {
-    copyCode() {
-      uni.setClipboardData({ data: this.myCode });
-    },
-    switchCode() {
-      const c = (this.newCode || "").trim();
-      if (c.length < 5) {
-        uni.showToast({ title: "口令不对，检查一下", icon: "none" });
-        return;
-      }
-      setUserCode(c);
-      this.myCode = c;
-      uni.showToast({ title: "已切换，数据加载中", icon: "none" });
-      setTimeout(() => uni.reLaunch({ url: "/pages/index/index" }), 600);
-    },
     async save() {
       try {
         const term = await api.put("/api/terms", this.form);

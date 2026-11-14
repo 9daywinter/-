@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <!-- 主操作：手动填日程，一定稳 -->
+    <!-- 手动添加日程（v2：纯单机版，语音/AI 预填已随 v1 冻结） -->
     <view class="card">
       <view class="card-title">添加日程</view>
       <view class="form-row">
@@ -106,53 +106,9 @@
       </button>
     </view>
 
-    <!-- 文字预填：只负责帮你填上面的表单，不满意直接改 -->
-    <!-- 语音相关（录音 ASR / 浏览器实时听 / http 提示）先整体隐藏，是否保留待定。
-         恢复：删掉下面这行注释和对应的收尾注释即可
-    <view class="card">
-      <view class="note-banner" v-if="!secure">
-        当前用 HTTP 打开，浏览器会禁用麦克风和语音识别 → 直接打字或用手填
-      </view>
-      <view class="card-title">
-        语音/文字预填
-        <text class="by-tag" v-if="lastBy">上次解析：{{ lastBy === "llm" ? "AI" : "规则" }}，可随时改</text>
-      </view>
-      <view class="rec-wrap" :class="{ recording }" @click="toggleRecord">
-        <text class="rec-ico">{{ recording ? "⏹" : "🎙" }}</text>
-        <text class="rec-txt">{{ recording ? "正在录音，再点一次结束并识别…" : "点一下开始录音，说完再点一次识别" }}</text>
-      </view>
-      <text class="rec-sub" v-if="recSub">{{ recSub }}</text>
-      <view v-if="sr" class="sr-line" @click="toggleListen">
-        <text>{{ listening ? "● 正在听…点击停止" : "🎤 浏览器实时听（桌面可用）" }}</text>
-      </view>
-      <text class="mic-hint" v-else>此浏览器不支持实时语音识别，用上面的录音或打字</text>
-      <textarea
-        v-model="transcript"
-        class="ta"
-        placeholder='比如：明天下午三点半开班会，两个小时。点声音解析会填进上方表单（解析错就直接手改）'
-        :maxlength="200"
-      />
-      <button class="btn-ghost" :disabled="busy" @click="parse">
-        {{ busy ? "解析中…" : "🔊 声音解析并填入表单" }}
-      </button>
-    </view>
-    -->
-    <view class="card">
-      <view class="card-title">一句话预填（可选）</view>
-      <textarea
-        v-model="transcript"
-        class="ta"
-        placeholder='一句话速记（明天下午三点半开班会，两个小时）或直接粘贴群通知（投票/体测/讲座安排），点解析自动填表'
-        :maxlength="2000"
-      />
-      <button class="btn-ghost" :disabled="busy" @click="parse">
-        {{ busy ? "解析中…" : "解析并填入表单" }}
-      </button>
-    </view>
-
-    <!-- 已有速记 -->
+    <!-- 已有日程 -->
     <view class="card" v-if="events.length">
-      <view class="card-title">我的速记（{{ events.length }}）</view>
+      <view class="card-title">我的日程（{{ events.length }}）</view>
       <view v-for="ev in events" :key="ev.id" class="ev-row">
         <view class="ev-info">
           <text class="ev-title">{{ ev.icon || "🎤" }} {{ ev.title }}<text v-if="ev.series_id" class="series-tag"> 🔁×{{ seriesCount[ev.series_id] || 1 }}</text></text>
@@ -206,15 +162,6 @@ export default {
     const end = new Date();
     end.setMinutes(end.getMinutes() + 60);
     return {
-      sr: null,
-      listening: false,
-      secure: true,
-      recorder: null,      // uni.getRecorderManager()，H5 / APK 通用
-      recording: false,
-      recSub: "",
-      transcript: "",
-      lastBy: "",
-      lastVoice: false,
       draft: {
         title: "",
         note: "",
@@ -240,8 +187,6 @@ export default {
     };
   },
   onShow() {
-    this.initSR();
-    this.initRecorder();
     this.loadEvents();
     this.checkClash();
   },
@@ -254,7 +199,7 @@ export default {
     "draft.timeStatus": "_clashTick",
   },
   computed: {
-    // 重复组 id → 条数（速记列表 🔁×N 用）
+    // 重复组 id → 条数（日程列表 🔁×N 用）
     seriesCount() {
       const m = {};
       for (const e of this.events || []) {
@@ -292,9 +237,6 @@ export default {
       return parts.join("、");
     },
   },
-  onHide() {
-    if (this.listening) this.sr && this.sr.stop();
-  },
   methods: {
     _clashTick() {
       clearTimeout(this._clashT);
@@ -320,178 +262,6 @@ export default {
         this.clash = has ? r : null;
       } catch (e) {
         this.clash = null; // 检测失败不挡输入
-      }
-    },
-    // 录音 → 上传后端 ASR（H5 / APK 通用）。
-    // APK 里 uni.getRecorderManager 是原生录音，最稳；
-    // H5 走 Chrome MediaRecorder，能录但产物是 webm/opus，需后端 ffmpeg 转码。
-    initRecorder() {
-      if (this.recorder || !uni.getRecorderManager) return;
-      const mgr = uni.getRecorderManager();
-      mgr.onStop((res) => this.onRecordStop(res));
-      mgr.onError((e) => {
-        this.recording = false;
-        uni.showToast({ title: "录音出错了：" + ((e && e.errMsg) || "未知"), icon: "none" });
-      });
-      this.recorder = mgr;
-    },
-    toggleRecord() {
-      if (!this.recorder) {
-        uni.showToast({ title: "当前环境不支持录音，直接打字吧", icon: "none" });
-        return;
-      }
-      if (this.recording) this.recorder.stop();
-      else {
-        this.recSub = "";
-        this.recorder.start({
-          duration: 30000,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          encodeBitRate: 48000,
-          format: "mp3",
-        });
-        this.recording = true;
-      }
-    },
-    onRecordStop(res) {
-      this.recording = false;
-      if (!res || !res.tempFilePath) {
-        uni.showToast({ title: "没录到音频，再说一次", icon: "none" });
-        return;
-      }
-      this.recSub = "识别中…";
-      // 读音频为 base64：H5 / APP 各读各的接口，行为一致
-      const path = res.tempFilePath;
-      const readB64 = (cb) => {
-        // #ifdef H5
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", path, true);
-        xhr.responseType = "blob";
-        xhr.onload = () => {
-          const fr = new FileReader();
-          fr.onload = () => cb(String(fr.result).split(",")[1]);
-          fr.readAsDataURL(xhr.response);
-        };
-        xhr.onerror = () => this.recFail("读取录音失败");
-        xhr.send();
-        // #endif
-        // #ifndef H5
-        uni.getFileSystemManager()
-          .readFile({
-            filePath: path,
-            encoding: "base64",
-            success: (r) => cb(r.data),
-            fail: () => this.recFail("读取录音失败"),
-          })
-          .catch(() => this.recFail("读取录音失败"));
-        // #endif
-      };
-      const ext = (String(path).split(".").pop() || "mp3").toLowerCase();
-      readB64((b64) => {
-        if (!b64) return;
-        api
-          .post("/api/ai/voice-upload", { audio_base64: b64, ext })
-          .then((r) => {
-            this.recSub = r.text_used ? `听到：${r.text_used}（可改）` : "识别完成，请确认";
-            if (r.title) this.draft.title = r.title;
-            if (r.note) this.draft.note = r.note;
-            if (r.location) this.draft.loc = r.location;
-            const s = isoToLocal(r.start_at);
-            const e = isoToLocal(r.end_at);
-            this.draft.sd = s.d;
-            this.draft.st = s.t;
-            this.draft.ed = e.d;
-            this.draft.et = e.t;
-            this.lastBy = r.by || "voice";
-            this.lastVoice = true;
-            this.transcript = r.text_used || this.transcript;
-            uni.showToast({ title: "已填入表单，确认后再保存", icon: "none" });
-          })
-          .catch((err) => this.recFail(err.message));
-      });
-    },
-    recFail(msg) {
-      this.recording = false;
-      this.recSub = "";
-      uni.showToast({ title: msg || "识别失败", icon: "none", duration: 3000 });
-    },
-    initSR() {
-      try {
-        this.secure = window.isSecureContext;
-      } catch (e) {
-        this.secure = false;
-      }
-      const SR = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
-      if (!SR) return;
-      const sr = new SR();
-      sr.lang = "zh-CN";
-      sr.interimResults = true;
-      sr.continuous = false;
-      sr.onresult = (e) => {
-        let text = "";
-        for (let i = 0; i < e.resultIndex; i++) text += e.results[i][0].transcript;
-        this.transcript = (text + (e.results[e.resultIndex] ? e.results[e.resultIndex][0].transcript : "")).trim();
-      };
-      sr.onend = () => {
-        this.listening = false;
-        if (this.transcript) this.parse();
-      };
-      // 之前静默吞错 → 手机上表现为"没反应/结束不了"。把真实原因弹出来。
-      sr.onerror = (e) => {
-        this.listening = false;
-        const msg = {
-          NotAllowedError: "麦克风被拒绝了：点地址栏的锁/权限图标，允许麦克风后重试",
-          NotSupportedError: "这台设备的浏览器不支持语音，直接用上面的表单或打字",
-          AudioCapture: "没检测到麦克风，检查下耳机麦/麦克风",
-          NetworkError: "语音服务连不上（多为非 https 环境），直接打字或用手填表单",
-          NoSpeechError: "没听清，请靠近麦克风再说一次",
-        }[e.error] || "语音出错了：" + e.error;
-        if (e.error !== "aborted" && e.error !== "no-speech") {
-          uni.showToast({ title: msg, icon: "none", duration: 3500 });
-        }
-      };
-      this.sr = sr;
-    },
-    toggleListen() {
-      if (!this.sr) return;
-      if (this.listening) {
-        this.sr.stop();
-        return;
-      }
-      this.transcript = "";
-      try {
-        this.sr.start();
-        this.listening = true;
-      } catch (e) {
-        /* 连续快速点击会抛错，忽略 */
-      }
-    },
-    // 解析结果只用来"预填表单"，不当最终答案——错的直接在上面改
-    async parse() {
-      if (!this.transcript.trim()) {
-        uni.showToast({ title: "先说/写点什么", icon: "none" });
-        return;
-      }
-      this.busy = true;
-      try {
-        const res = await api.post("/api/ai/parse-voice", { text: this.transcript });
-        const s = isoToLocal(res.start_at);
-        const e = isoToLocal(res.end_at);
-        if (res.title) this.draft.title = res.title;
-        if (res.note) this.draft.note = res.note;
-        if (res.location) this.draft.loc = res.location;
-        if (res.time_status) this.draft.timeStatus = res.time_status;
-        this.draft.sd = s.d;
-        this.draft.st = s.t;
-        this.draft.ed = e.d;
-        this.draft.et = e.t;
-        this.lastBy = res.by || "";
-        this.lastVoice = Boolean(this.sr);
-        uni.showToast({ title: "已填入上方表单，确认后再保存", icon: "none" });
-      } catch (err) {
-        uni.showToast({ title: err.message, icon: "none" });
-      } finally {
-        this.busy = false;
       }
     },
     shiftDay(days) {
@@ -599,7 +369,7 @@ export default {
             start_at,
             end_at,
             type: "temp",
-            source: this.lastVoice ? "voice" : "text",
+            source: "text",
           });
           uni.showToast({
             title: this.clash ? "已记下，冲突见主页 ⚠️" : "已记下 ✓",
@@ -609,8 +379,6 @@ export default {
         this.draft.title = "";
         this.draft.note = "";
         this.draft.loc = "";
-        this.lastVoice = false;
-        this.transcript = "";
         this.loadEvents();
       } catch (e) {
         uni.showToast({ title: e.message, icon: "none" });
@@ -622,7 +390,7 @@ export default {
       try {
         this.events = await api.get("/api/events");
       } catch (e) {
-        /* 后台没起时静默 */
+        /* 静默 */
       }
     },
     async delEvent(id) {
@@ -657,7 +425,7 @@ export default {
       const l = isoToLocal(s);
       return `${l.d.slice(5)} ${l.t}`;
     },
-    // 速记列表时间文案：按时间确定度标注（仅开始→"起"，大概→"约"，待定→"??"）
+    // 日程列表时间文案：按时间确定度标注（仅开始→"起"，大概→"约"，待定→"??"）
     evTimeText(ev) {
       const st = ev.time_status || "exact";
       const loc = ev.location ? ` · ${ev.location}` : "";
@@ -692,56 +460,6 @@ export default {
   align-items: center;
   gap: 12rpx;
 }
-.by-tag {
-  font-size: 20rpx;
-  color: #4f46e5;
-  background: #eef2ff;
-  border-radius: 8rpx;
-  padding: 2rpx 10rpx;
-  font-weight: 400;
-}
-.mic-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14rpx;
-  margin-bottom: 24rpx;
-}
-.mic {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  background: #4f46e5;
-  color: #fff;
-  font-size: 56rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.35);
-}
-.mic.listening {
-  background: #ef4444;
-  animation: pulse 1s infinite;
-}
-@keyframes pulse {
-  50% {
-    transform: scale(1.08);
-  }
-}
-.mic-hint {
-  font-size: 24rpx;
-  color: #8a91a3;
-}
-.ta {
-  width: 100%;
-  height: 140rpx;
-  background: #f5f6fa;
-  border-radius: 12rpx;
-  padding: 16rpx;
-  font-size: 28rpx;
-  box-sizing: border-box;
-  margin-bottom: 20rpx;
-}
 .btn-primary {
   background: #4f46e5;
   color: #fff;
@@ -756,21 +474,6 @@ export default {
   color: #fff;
 }
 .btn-primary::after {
-  border: none;
-}
-.btn-ghost {
-  background: #eef2ff;
-  color: #4f46e5;
-  font-size: 28rpx;
-  border-radius: 14rpx;
-  height: 84rpx;
-  line-height: 1;
-  border: none;
-}
-.btn-ghost[disabled] {
-  opacity: 0.6;
-}
-.btn-ghost::after {
   border: none;
 }
 .form-row {
@@ -843,15 +546,6 @@ export default {
 }
 .rep-cross { color: #b45309; font-weight: 600; }
 .series-tag { font-size: 20rpx; color: #4f46e5; font-weight: 600; }
-.note-banner {
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 24rpx;
-  border-radius: 10rpx;
-  padding: 16rpx 20rpx;
-  margin-bottom: 18rpx;
-  line-height: 1.4;
-}
 .icon-chips {
   flex-wrap: wrap;
 }

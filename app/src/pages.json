@@ -13,13 +13,7 @@
 			}
 		},
 		{
-			"path": "pages/import/import",
-			"style": {
-				"navigationBarTitleText": "导入课表"
-			}
-		},
-		{
-			"path": "pages/voice/voice",
+			"path": "pages/add/add",
 			"style": {
 				"navigationBarTitleText": "添加日程"
 			}
@@ -34,12 +28,6 @@
 			"path": "pages/ddl/ddl",
 			"style": {
 				"navigationBarTitleText": "DDL 倒计时"
-			}
-		},
-		{
-			"path": "pages/group/group",
-			"style": {
-				"navigationBarTitleText": "拼小组"
 			}
 		}
 	],

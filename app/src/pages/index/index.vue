@@ -20,7 +20,7 @@
 
       <!-- 工具入口 -->
       <view class="tool-bar">
-        <view class="tool-btn" @click="go('/pages/voice/voice')">➕ 添加日程</view>
+        <view class="tool-btn" @click="go('/pages/add/add')">➕ 添加日程</view>
         <view class="tool-btn" @click="go('/pages/ddl/ddl')">⏰ DDL<template v-if="ddlOpenCount > 0"> {{ ddlOpenCount }}</template></view>
         <view class="tool-btn" @click="go('/pages/profile/profile')">👤 主页</view>
       </view>
@@ -29,7 +29,7 @@
       <view v-if="hasToday" class="today-card">
         <view class="today-head" @click="go('/pages/ddl/ddl')">
           <text>📋 今天 {{ todayText }}</text>
-          <text class="today-stat">{{ todayView.courses.length }} 门课<template v-if="todayView.ddls.length"> · ⏰ {{ todayView.ddls.length }} 个 DDL</template><template v-if="todayView.sugCount"> · 💡 {{ todayView.sugCount }} 条建议</template></text>
+          <text class="today-stat">{{ todayView.courses.length }} 门课<template v-if="todayView.ddls.length"> · ⏰ {{ todayView.ddls.length }} 个 DDL</template></text>
         </view>
         <view v-for="c in todayView.courses.slice(0, 3)" :key="'c' + c.id" class="today-row" @click="onCourse(c)">
           <text class="today-time">{{ courseTimeText(c) }}</text>
@@ -39,10 +39,6 @@
           <text class="today-time">⏰ {{ String(d.due_at).slice(11, 16) }}</text>
           <text class="today-name">{{ d.title }}</text>
           <text class="today-tag" :class="d.tier">{{ d.remain_text }}</text>
-        </view>
-        <view v-if="todayView.sugCount" class="today-row sug" @click="go('/pages/ddl/ddl')">
-          <text class="today-time">💡</text>
-          <text class="today-name">批奏折里有 {{ todayView.sugCount }} 条时间建议，去处理 ›</text>
         </view>
       </view>
       <view class="rotate-hint" v-if="!isWide">🔀 手机横屏可看完整课表（课名/地点/教师），点击卡片也能看详情</view>
@@ -304,7 +300,7 @@
           <text class="sug-ev-time">🕐 {{ evRangeText(sugEv) }}</text>
           <text v-if="sugEv.location" class="sug-ev-loc">📍 {{ sugEv.location }}</text>
           <text v-if="sugEv.note" class="sug-ev-note">{{ sugEv.note }}</text>
-          <text class="sug-ev-hint">{{ sugEvMode === "exam" ? "考试时间/地点/备注在 DDL 页改" : "批奏折接受的安排 · 做完了就点「完成 DDL」打卡" }}</text>
+          <text class="sug-ev-hint">{{ sugEvMode === "exam" ? "考试时间/地点/备注在 DDL 页改" : "关联 DDL 的时间安排 · 做完了就点「完成 DDL」打卡" }}</text>
         </view>
         <view class="sheet-btns" v-if="sugEvMode !== 'exam'">
           <button class="btn-plain" @click="delSugEv">删除安排</button>
@@ -352,7 +348,7 @@
 </template>
 
 <script>
-import { api, getUser, parseWeeks } from "../../utils/api";
+import { api, parseWeeks } from "../../utils/api";
 import { DAY_NAMES, EVENT_ICONS, SLOT_COUNT, SLOT_TIMES, TIME_STATUS, courseColor } from "../../utils/slots";
 
 const hms = (t) => {
@@ -511,20 +507,6 @@ export default {
           .filter((d) => d.status !== "done" && String(d.due_at).slice(0, 10) <= key(tmr)
                          && String(d.due_at).slice(0, 10) >= grace)
           .slice(0, 3);
-        try {
-          const r = await api.get("/api/suggestions");
-          // 与批奏折队列同口径：扣掉本地 24h 内忽略过的，不然数字比实际待批多
-          let dismissedIds = {};
-          try {
-            const raw = uni.getStorageSync("ddl_dismissed_" + (getUser() || ""));
-            const obj = raw ? JSON.parse(raw) : {};
-            const nowT = Date.now();
-            for (const k of Object.keys(obj)) {
-              if (nowT - obj[k] < 86400000) dismissedIds[k] = true;
-            }
-          } catch (e) { /* 读不到就按没忽略算 */ }
-          v.sugCount = (r.cards || []).filter((c) => !dismissedIds[c.ddl_id]).length;
-        } catch (e) { /* 建议拉不到不挡概览 */ }
       } catch (e) { /* 概览失败不影响主页 */ }
       this.todayView = v;
     },
@@ -982,7 +964,7 @@ export default {
       if (!ev) return;
       uni.showModal({
         title: "删除安排",
-        content: `删掉「${ev.title}」这个已排时间？DDL 会重新出现在建议里`,
+        content: `删掉「${ev.title}」这个已排时间？`,
         confirmText: "删除",
         success: async (r) => {
           if (!r.confirm) return;
