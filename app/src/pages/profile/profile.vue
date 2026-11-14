@@ -62,7 +62,7 @@
       <view class="card-title">🗓️ 我的日程（{{ stats.events }}）</view>
       <view v-if="!events.length" class="empty-tip">还没有日程，去课表页「➕ 添加日程」</view>
       <view v-for="e in events" :key="e.id" class="ev-row">
-        <text class="ev-icon">{{ e.icon || "🎤" }}</text>
+        <text class="ev-icon">{{ e.icon || defaultIcon }}</text>
         <view class="ev-mid">
           <text class="ev-title">{{ e.title }}<text v-if="e.series_count > 1" class="series-tag"> 🔁×{{ e.series_count }}</text></text>
           <text class="ev-sub">{{ evTime(e) }}<template v-if="e.location"> · {{ e.location }}</template></text>
@@ -141,7 +141,7 @@
 <script>
 import { api, getUser } from "../../utils/api";
 import { exportAll, importAll, importTimetable } from "../../utils/db";
-import { DAY_NAMES, TIME_STATUS } from "../../utils/slots";
+import { DAY_NAMES, DEFAULT_EVENT_ICON, TIME_STATUS } from "../../utils/slots";
 
 export default {
   data() {
@@ -153,6 +153,7 @@ export default {
       changes: [],
       editing: false,
       nickDraft: "",
+      defaultIcon: DEFAULT_EVENT_ICON,
       showImport: false,
       importText: "",
       showTtImport: false,

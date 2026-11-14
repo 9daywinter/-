@@ -76,9 +76,9 @@
           v-for="(ic, i) in eventIcons"
           :key="i"
           class="icon-pick"
-          :class="{ on: (draft.icon || '') === ic }"
+          :class="{ on: (draft.icon || defaultIcon) === ic }"
           @click="draft.icon = ic"
-        >{{ ic || "🎤" }}</text>
+        >{{ ic }}</text>
       </view>
       <view class="chips icon-chips">
         <text class="label">时间</text>
@@ -111,7 +111,7 @@
       <view class="card-title">我的日程（{{ events.length }}）</view>
       <view v-for="ev in events" :key="ev.id" class="ev-row">
         <view class="ev-info">
-          <text class="ev-title">{{ ev.icon || "🎤" }} {{ ev.title }}<text v-if="ev.series_id" class="series-tag"> 🔁×{{ seriesCount[ev.series_id] || 1 }}</text></text>
+          <text class="ev-title">{{ ev.icon || defaultIcon }} {{ ev.title }}<text v-if="ev.series_id" class="series-tag"> 🔁×{{ seriesCount[ev.series_id] || 1 }}</text></text>
           <text class="ev-time">{{ evTimeText(ev) }}</text>
         </view>
         <text class="ev-del" @click="delEvent(ev.id)">删除</text>
@@ -122,7 +122,7 @@
 
 <script>
 import { api } from "../../utils/api";
-import { EVENT_ICONS, TIME_STATUS } from "../../utils/slots";
+import { DEFAULT_EVENT_ICON, EVENT_ICONS, TIME_STATUS } from "../../utils/slots";
 
 // 颜色与日程块配色一致（和 index 页 evColors 同源，此处只取描边色）
 const COLORS = ["#f59e0b", "#db2777", "#0284c7", "#059669", "#9333ea", "#94a3b8"];
@@ -180,6 +180,7 @@ export default {
       events: [],
       busy: false,
       eventIcons: EVENT_ICONS,
+      defaultIcon: DEFAULT_EVENT_ICON,
       timeStatuses: TIME_STATUS,
       colors: COLORS.map((bd) => ({ bd })),
       clash: null,   // 输入时的实时冲突提示（只提示不阻断）

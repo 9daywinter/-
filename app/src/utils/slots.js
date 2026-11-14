@@ -19,12 +19,12 @@ export const SLOT_TIMES = [
 export const SLOT_COUNT = SLOT_TIMES.length;
 export const DAY_NAMES = ["一", "二", "三", "四", "五", "六", "日"];
 
-// 日程小图标（emoji）："" = 默认 🎤；两个页面（课表/添加日程）共用
+// 日程小图标（emoji），2026-11-14 定制：删铅笔/箱子/足球(改自行车)/试剂，
+// 麦克风改电吉他挪到末位，睡觉排书本后、医院排拉面后。默认（含旧数据兜底）= 🎸
 export const EVENT_ICONS = [
-  "", "📚", "✏️", "📦", "⚽", "🎉", "🎂",
-  "🏥", "🚗", "🍜", "💤", "🎬", "🧪", "💼",
+  "📚", "💤", "🚲", "🎉", "🎂", "🚗", "🍜", "🏥", "🎬", "💼", "🎸",
 ];
-export const DEFAULT_EVENT_ICON = "🎤";
+export const DEFAULT_EVENT_ICON = "🎸";
 
 // 时间确定度四档：解析通知时自动判定，表单可改
 export const TIME_STATUS = [

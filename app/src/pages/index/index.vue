@@ -117,7 +117,7 @@
               :style="[eventStyle(ev), evTone(ev)]"
               @click="openEventSheet(ev)"
             >
-              <text class="ev-title" :style="{ color: evTone(ev).tt, fontSize: evFont(ev).title + 'rpx' }">{{ ev.icon || "🎤" }} {{ ev.title }}</text>
+              <text class="ev-title" :style="{ color: evTone(ev).tt, fontSize: evFont(ev).title + 'rpx' }">{{ ev.icon || defaultIcon }} {{ ev.title }}</text>
               <text class="ev-time" :style="{ color: evTone(ev).tt, fontSize: evFont(ev).sub + 'rpx' }">{{ evRangeText(ev) }}</text>
               <text class="ev-note" v-if="ev.note && evFont(ev).showNote" :style="{ color: evTone(ev).tt, fontSize: evFont(ev).note + 'rpx' }">{{ ev.note }}</text>
             </view>
@@ -248,9 +248,9 @@
               v-for="(ic, i) in eventIcons"
               :key="i"
               class="icon-dot"
-              :class="{ sel: (evDraft.icon || '') === ic }"
+              :class="{ sel: (evDraft.icon || defaultIcon) === ic }"
               @click="evDraft.icon = ic"
-            >{{ ic || "🎤" }}</text>
+            >{{ ic }}</text>
           </view>
         </view>
         <view class="form-row icon-row">
@@ -349,7 +349,7 @@
 
 <script>
 import { api, parseWeeks } from "../../utils/api";
-import { DAY_NAMES, EVENT_ICONS, SLOT_COUNT, SLOT_TIMES, TIME_STATUS, courseColor } from "../../utils/slots";
+import { DAY_NAMES, DEFAULT_EVENT_ICON, EVENT_ICONS, SLOT_COUNT, SLOT_TIMES, TIME_STATUS, courseColor } from "../../utils/slots";
 
 const hms = (t) => {
   const [h, m] = t.split(":").map(Number);
@@ -402,6 +402,7 @@ export default {
       _evId: null,
       evDraft: { title: "", note: "", icon: "", timeStatus: "exact", colorIdx: 0, sd: "", st: "", ed: "", et: "" },
       eventIcons: EVENT_ICONS,
+      defaultIcon: DEFAULT_EVENT_ICON,
       timeStatuses: TIME_STATUS,
       addTitle: "",
       courseFormMode: "add",
