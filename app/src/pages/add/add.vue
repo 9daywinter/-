@@ -2,7 +2,13 @@
   <view class="page">
     <!-- 手动添加日程（v2：纯单机版，语音/AI 预填已随 v1 冻结） -->
     <view class="card">
-      <view class="card-title">添加日程</view>
+      <view class="card-title-row">
+        <text class="card-title">{{ editingId ? "编辑日程" : "添加日程" }}</text>
+        <text v-if="editingId" class="cancel-edit" @click="cancelEdit">× 放弃修改</text>
+      </view>
+      <view v-if="editingId && editingSeries > 1" class="series-edit-tip">
+        🔁 这是重复日程中的一条（共 {{ editingSeries }} 条），只改这一条
+      </view>
       <view class="form-row">
         <text class="label">标题</text>
         <input v-model="draft.title" placeholder="要干什么，必填" />
@@ -41,7 +47,7 @@
           <picker class="cover" mode="time" :value="draft.et" @change="(e) => (draft.et = e.detail.value)"></picker>
         </view>
       </view>
-      <view class="form-row">
+      <view v-if="!editingId" class="form-row">
         <text class="label">重复</text>
         <view class="rep-chips">
           <text class="chip" :class="{ on: draft.repeat === 'none' }" @click="draft.repeat = 'none'">不重复</text>
@@ -49,7 +55,7 @@
           <text class="chip" :class="{ on: draft.repeat === 'weekly' }" @click="setRepeat('weekly')">每周</text>
         </view>
       </view>
-      <view v-if="draft.repeat === 'weekly'" class="chips">
+      <view v-if="!editingId && draft.repeat === 'weekly'" class="chips">
         <text class="label">哪天</text>
         <text
           v-for="(w, i) in ['一', '二', '三', '四', '五', '六', '日']"
@@ -59,7 +65,7 @@
           @click="toggleRDay(i + 1)"
         >{{ w }}</text>
       </view>
-      <view v-if="draft.repeat !== 'none'" class="form-row">
+      <view v-if="!editingId && draft.repeat !== 'none'" class="form-row">
         <text class="label">重复到</text>
         <view class="val pick-val">
           <text>{{ shortDate(draft.red) }}</text>
@@ -111,20 +117,26 @@
           @click="draft.colorIdx = i"
         ></view>
       </view>
-      <button class="btn-primary" :disabled="busy" @click="save">
+      <view v-if="editingId" class="sheet-btns">
+        <button class="btn-plain" @click="delEvent(editingId)">删除</button>
+        <button class="btn-primary" :disabled="busy" @click="save">
+          {{ busy ? "保存中…" : "保存修改" }}
+        </button>
+      </view>
+      <button v-else class="btn-primary" :disabled="busy" @click="save">
         {{ busy ? "保存中…" : saveBtnText }}
       </button>
     </view>
 
-    <!-- 已有日程 -->
+    <!-- 已有日程：点一条载入上方表单修改 -->
     <view class="card" v-if="events.length">
       <view class="card-title">我的日程（{{ events.length }}）</view>
-      <view v-for="ev in events" :key="ev.id" class="ev-row">
+      <view v-for="ev in events" :key="ev.id" class="ev-row" :class="{ editing: editingId === ev.id }" @click="startEdit(ev)">
         <view class="ev-info">
           <text class="ev-title">{{ ev.icon || defaultIcon }} {{ ev.title }}<text v-if="ev.series_id" class="series-tag"> 🔁×{{ seriesCount[ev.series_id] || 1 }}</text></text>
           <text class="ev-time">{{ evTimeText(ev) }}</text>
         </view>
-        <text class="ev-del" @click="delEvent(ev.id)">删除</text>
+        <text class="ev-del" @click.stop="delEvent(ev.id)">删除</text>
       </view>
     </view>
   </view>
@@ -189,6 +201,8 @@ export default {
       },
       events: [],
       busy: false,
+      editingId: null,     // 非空 = 正在编辑这条日程（点列表载入）
+      editingSeries: 0,    // 编辑中日程的重复组条数（>1 显示"只改这一条"提示）
       eventIcons: EVENT_ICONS,
       defaultIcon: DEFAULT_EVENT_ICON,
       timeStatuses: TIME_STATUS,
@@ -197,8 +211,17 @@ export default {
       _clashT: null,
     };
   },
-  onShow() {
-    this.loadEvents();
+  onLoad(opts) {
+    // 主页「我的日程」/ 冲突处理跳转过来：?edit=<id> 自动载入该条进编辑
+    this._pendingEdit = opts && opts.edit ? String(opts.edit) : "";
+  },
+  async onShow() {
+    await this.loadEvents();
+    if (this._pendingEdit) {
+      const ev = this.events.find((e) => String(e.id) === this._pendingEdit);
+      this._pendingEdit = "";
+      if (ev) this.startEdit(ev);
+    }
     this.checkClash();
   },
   watch: {
@@ -268,7 +291,9 @@ export default {
       }
       try {
         const r = await api.post("/api/events/conflict", {
-          start_at, end_at, time_status: d.timeStatus });
+          start_at, end_at, time_status: d.timeStatus,
+          // 编辑已有日程时排除它自己，否则必然"与自己冲突"
+          exclude_event_id: this.editingId || undefined });
         const has = (r.courses?.length || 0) + (r.events?.length || 0);
         this.clash = has ? r : null;
       } catch (e) {
@@ -313,6 +338,45 @@ export default {
       else this.draft.rdays.push(d);
       this.draft.rdays.sort();
     },
+    // 点列表里的日程 → 载入表单编辑（改的是这一条；重复组只动单条）
+    startEdit(ev) {
+      this.editingId = ev.id;
+      this.editingSeries = ev.series_id ? this.seriesCount[ev.series_id] || 1 : 0;
+      this.draft = {
+        title: ev.title,
+        note: ev.note || "",
+        loc: ev.location || "",
+        icon: ev.icon || "",
+        timeStatus: ev.time_status || "exact",
+        colorIdx: (ev.color_idx || 0) % this.colors.length,
+        sd: String(ev.start_at).slice(0, 10),
+        st: String(ev.start_at).slice(11, 16),
+        ed: String(ev.end_at).slice(0, 10),
+        et: String(ev.end_at).slice(11, 16),
+        repeat: "none",
+        rdays: [],
+        red: "",
+      };
+      this.clash = null;
+      uni.pageScrollTo({ scrollTop: 0, duration: 200 });
+    },
+    cancelEdit() {
+      this.editingId = null;
+      this.editingSeries = 0;
+      this.resetDraft();
+    },
+    resetDraft() {
+      const now = dateOffset(0);
+      const end = new Date();
+      end.setMinutes(end.getMinutes() + 60);
+      this.draft = {
+        title: "", note: "", loc: "", icon: "", timeStatus: "exact", colorIdx: 0,
+        sd: now.d, st: now.t, ed: now.d,
+        et: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+        repeat: "none", rdays: [], red: "",
+      };
+      this.clash = null;
+    },
     async save() {
       const { title, note, loc, icon, timeStatus, sd, st, ed, et, colorIdx, repeat, rdays, red } = this.draft;
       if (!title.trim()) {
@@ -348,6 +412,25 @@ export default {
       this.busy = true;
       try {
         // 冲突已在输入时实时提示（clash），这里不再弹窗；保存后冲突会在主页集中列出
+        // 编辑已有日程：只更新这一条的字段（重复属性不参与修改）
+        if (this.editingId) {
+          const start_at = `${sd} ${st}:00`;
+          const end_at = `${ed} ${et}:00`;
+          await api.put("/api/events/" + this.editingId, {
+            title: title.trim(),
+            note: note.trim(),
+            location: (loc || "").trim(),
+            icon: icon || "",
+            time_status: timeStatus || "exact",
+            color_idx: colorIdx,
+            start_at,
+            end_at,
+          });
+          uni.showToast({ title: this.clash ? "已更新，冲突见主页 ⚠️" : "已更新 ✓", icon: "success" });
+          this.cancelEdit();
+          this.loadEvents();
+          return;
+        }
         const start_at = `${sd} ${st}:00`;
         const end_at = recurring ? `${sd} ${et}:00` : `${ed} ${et}:00`;
         if (recurring) {
@@ -405,6 +488,10 @@ export default {
       }
     },
     async delEvent(id) {
+      const afterDel = () => {
+        if (this.editingId === id) this.cancelEdit();
+        this.loadEvents();
+      };
       const ev = this.events.find((e) => e.id === id);
       if (ev && ev.series_id) {
         const n = this.seriesCount[ev.series_id] || 1;
@@ -417,7 +504,7 @@ export default {
                 await api.del("/api/events/series/" + ev.series_id);
                 uni.showToast({ title: `已删整组 ${n} 条`, icon: "none" });
               } else return;
-              this.loadEvents();
+              afterDel();
             } catch (e) {
               uni.showToast({ title: e.message, icon: "none" });
             }
@@ -426,7 +513,7 @@ export default {
         return;
       }
       await api.del("/api/events/" + id);
-      this.loadEvents();
+      afterDel();
     },
     shortDate(d) {
       const l = isoToLocal(d + "T00:00:00");
@@ -620,6 +707,47 @@ export default {
 .color-chips .dot.on {
   border-color: #1f2937;
 }
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cancel-edit {
+  font-size: 24rpx;
+  color: #6b7280;
+  padding: 6rpx 12rpx;
+}
+.series-edit-tip {
+  background: #fff7ed;
+  color: #b45309;
+  font-size: 22rpx;
+  border-radius: 10rpx;
+  padding: 10rpx 16rpx;
+  margin-bottom: 16rpx;
+}
+.sheet-btns {
+  display: flex;
+  gap: 16rpx;
+}
+.btn-plain {
+  flex: 1;
+  background: #f1f2f6;
+  color: #4b5563;
+  font-size: 31rpx;
+  border-radius: 14rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+.btn-plain::after {
+  border: none;
+}
+.sheet-btns .btn-primary {
+  flex: 2;
+}
 .ev-row {
   display: flex;
   align-items: center;
@@ -630,10 +758,18 @@ export default {
 .ev-row:last-child {
   border-bottom: none;
 }
+.ev-row.editing {
+  background: #eef2ff;
+  border-radius: 10rpx;
+  padding-left: 12rpx;
+  padding-right: 12rpx;
+}
 .ev-info {
   display: flex;
   flex-direction: column;
   gap: 4rpx;
+  flex: 1;
+  min-width: 0; /* 长标题/时间不被右侧按钮挤到裁字 */
 }
 .ev-title {
   font-size: 28rpx;
@@ -646,6 +782,8 @@ export default {
 .ev-del {
   color: #b0b5c1;
   font-size: 24rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
   padding: 6rpx 10rpx;
 }
 </style>

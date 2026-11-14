@@ -41,7 +41,6 @@
           <text class="today-tag" :class="d.tier">{{ d.remain_text }}</text>
         </view>
       </view>
-      <view class="rotate-hint" v-if="!isWide">🔀 手机横屏可看完整课表（课名/地点/教师），点击卡片也能看详情</view>
 
       <!-- 时间冲突入口：可视化小课表里点哪块删/改哪边 -->
       <view v-if="conflicts.length" class="conflict-card" @click="openConflicts">
@@ -202,88 +201,18 @@
       </view>
     </view>
 
-    <!-- 日程编辑弹层 -->
+    <!-- 日程详情弹层：只看，改/删去 主页 → 我的日程 -->
     <view v-if="showEvSheet" class="sheet-mask" @click="showEvSheet = false">
       <view class="sheet" @click.stop>
-        <view class="sheet-title">编辑日程</view>
-        <view class="form-row">
-          <text class="label">标题</text>
-          <input v-model="evDraft.title" placeholder="如 开班会" />
-        </view>
-        <view class="form-row">
-          <text class="label">备注</text>
-          <input v-model="evDraft.note" placeholder="随便写，显示在块上" />
-        </view>
-        <view class="form-row">
-          <text class="label">开始</text>
-          <view class="picker-val pick-wrap">
-            <text>{{ evDraft.sd }}</text>
-            <text class="caret">▾</text>
-            <picker class="cover" mode="date" :value="evDraft.sd" @change="(e) => (evDraft.sd = e.detail.value)"></picker>
-          </view>
-          <view class="picker-val pick-wrap">
-            <text>{{ evDraft.st }}</text>
-            <picker class="cover" mode="time" :value="evDraft.st" @change="(e) => (evDraft.st = e.detail.value)"></picker>
-          </view>
-        </view>
-        <view class="form-row">
-          <text class="label">结束</text>
-          <view class="picker-val pick-wrap">
-            <text>{{ evDraft.ed }}</text>
-            <text class="caret">▾</text>
-            <picker class="cover" mode="date" :value="evDraft.ed" @change="(e) => (evDraft.ed = e.detail.value)"></picker>
-          </view>
-          <view class="picker-val pick-wrap">
-            <text>{{ evDraft.et }}</text>
-            <picker class="cover" mode="time" :value="evDraft.et" @change="(e) => (evDraft.et = e.detail.value)"></picker>
-          </view>
-        </view>
-        <view class="form-row icon-row">
-          <text class="label">图标</text>
-          <view class="icon-dots">
-            <text
-              v-for="(ic, i) in eventIcons"
-              :key="i"
-              class="icon-dot"
-              :class="{ sel: (evDraft.icon || defaultIcon) === ic }"
-              @click="evDraft.icon = ic"
-            >{{ ic }}</text>
-          </view>
-        </view>
-        <view class="form-row icon-row">
-          <text class="label">时间</text>
-          <view class="icon-dots">
-            <text
-              v-for="ts in timeStatuses"
-              :key="ts.key"
-              class="icon-dot ts-dot"
-              :class="{ sel: (evDraft.timeStatus || 'exact') === ts.key }"
-              :style="{ fontSize: '24rpx' }"
-              @click="evDraft.timeStatus = ts.key"
-            >{{ ts.label }}</text>
-          </view>
-        </view>
-        <view class="form-row">
-          <text class="label">颜色</text>
-          <view class="color-dots">
-            <view
-              v-for="(c, i) in evColors"
-              :key="i"
-              class="dot"
-              :class="{ sel: evDraft.colorIdx === i }"
-              :style="{ background: c.bg, border: (evDraft.colorIdx === i ? '4rpx' : '2rpx') + ' solid ' + c.bd }"
-              @click="evDraft.colorIdx = i"
-            >
-              <text v-if="evDraft.colorIdx === i" :style="{ color: c.tt, fontSize: '22rpx' }">✓</text>
-            </view>
-          </view>
-        </view>
-        <view v-if="evClash" class="clash-hint">
-          ⚠️ 与{{ evClashText }}时间重叠<text class="clash-sub">（可保存，冲突会列在主页）</text>
-        </view>
+        <view class="sheet-title">日程详情</view>
+        <view class="detail-title">{{ evDraft.icon || defaultIcon }} {{ evDraft.title }}</view>
+        <view class="detail-row"><text class="d-label">时间</text><text class="d-val">{{ evDetailTime }}</text></view>
+        <view class="detail-row"><text class="d-label">状态</text><text class="d-val">{{ evStatusLabel }}</text></view>
+        <view v-if="evDraft.loc" class="detail-row"><text class="d-label">地点</text><text class="d-val">{{ evDraft.loc }}</text></view>
+        <view v-if="evDraft.note" class="detail-row"><text class="d-label">备注</text><text class="d-val">{{ evDraft.note }}</text></view>
+        <view v-if="evSeriesN > 1" class="detail-row"><text class="d-label">重复</text><text class="d-val">🔁 共 {{ evSeriesN }} 条（改/删按单条操作）</text></view>
         <view class="sheet-btns">
-          <button class="btn-plain" @click="delEvent({ id: _evId, title: evDraft.title })">删除</button>
-          <button class="btn-primary" @click="saveEvent">保存</button>
+          <button class="btn-primary" @click="showEvSheet = false">知道了</button>
         </view>
       </view>
     </view>
@@ -397,7 +326,8 @@ export default {
       ],
       showEvSheet: false,
       _evId: null,
-      evDraft: { title: "", note: "", icon: "", timeStatus: "exact", colorIdx: 0, sd: "", st: "", ed: "", et: "" },
+      evDraft: { title: "", note: "", icon: "", loc: "", timeStatus: "exact", sd: "", st: "", ed: "", et: "" },
+      evSeriesN: 0, // 详情弹层显示的重复条数（改/删在主页按单条操作）
       eventIcons: EVENT_ICONS,
       defaultIcon: DEFAULT_EVENT_ICON,
       timeStatuses: TIME_STATUS,
@@ -413,8 +343,6 @@ export default {
       selConflict: -1,
       selItem: -1,
       todayView: { courses: [], ddls: [], sugCount: 0 }, // FR-51 今日概览
-      evClash: null, // 编辑日程时的实时冲突提示
-      _evClashT: null,
     };
   },
   computed: {
@@ -431,14 +359,17 @@ export default {
       const v = this.todayView;
       return v.courses.length || v.ddls.length || v.sugCount;
     },
-  },
-  watch: {
-    // 时间一改就查冲突，400ms 防抖，提示不打断输入
-    "evDraft.sd": "_evClashTick",
-    "evDraft.st": "_evClashTick",
-    "evDraft.ed": "_evClashTick",
-    "evDraft.et": "_evClashTick",
-    "evDraft.timeStatus": "_evClashTick",
+    // 详情弹层：时间一行字（同一天只写一次日期）
+    evDetailTime() {
+      const d = this.evDraft;
+      return d.ed === d.sd
+        ? `${d.sd} ${d.st}–${d.et}`
+        : `${d.sd} ${d.st} → ${d.ed} ${d.et}`;
+    },
+    evStatusLabel() {
+      const t = TIME_STATUS.find((x) => x.key === (this.evDraft.timeStatus || "exact"));
+      return t ? t.label.slice(2) : "准点";
+    },
   },
   async onShow() {
     this.updateWide();
@@ -579,7 +510,7 @@ export default {
       this.showConflicts = false;
       if (sel.it.type === "event") {
         const ev = (this.events || []).find((e) => e.id === sel.it.id);
-        if (ev) this.openEventSheet(ev, true);
+        if (ev) uni.navigateTo({ url: "/pages/add/add?edit=" + ev.id }); // 编辑移到添加日程页
         else uni.showToast({ title: "该日程不在列表中，试试直接删除后重建", icon: "none" });
       } else {
         const co = (this.courses || []).find((x) => x.id === sel.it.id);
@@ -636,42 +567,6 @@ export default {
           },
         });
       }
-    },
-    _evClashTick() {
-      clearTimeout(this._evClashT);
-      this._evClashT = setTimeout(() => this.checkEvClash(), 400);
-    },
-    async checkEvClash() {
-      const d = this.evDraft;
-      if (!this.showEvSheet || (d.timeStatus || "exact") === "fuzzy" || d.timeStatus === "todo") {
-        this.evClash = null;
-        return;
-      }
-      const start_at = `${d.sd} ${d.st}:00`;
-      const end_at = `${d.ed} ${d.et}:00`;
-      if (!d.sd || !d.st || !d.ed || !d.et || end_at <= start_at) {
-        this.evClash = null;
-        return;
-      }
-      try {
-        const r = await api.post("/api/events/conflict", {
-          start_at, end_at, exclude_event_id: this._evId,
-          time_status: d.timeStatus,
-        });
-        const has = (r.courses?.length || 0) + (r.events?.length || 0);
-        this.evClash = has ? r : null;
-      } catch (e) {
-        this.evClash = null;
-      }
-    },
-    evClashText() {
-      if (!this.evClash) return "";
-      const parts = [];
-      if (this.evClash.courses?.length)
-        parts.push("课程" + this.evClash.courses.slice(0, 2).map((c) => `《${c.name}》${c.slots_text}`).join("、"));
-      if (this.evClash.events?.length)
-        parts.push("日程" + this.evClash.events.slice(0, 2).map((e) => `《${e.title}》`).join("、"));
-      return parts.join("、");
     },
     async loadDdlCount() {
       try {
@@ -878,77 +773,27 @@ export default {
       if (st === "fuzzy") return `⏰约 ${plain}`;
       return plain;
     },
-    openEventSheet(ev, forceEdit) {
-      // 考试本体 / 批奏折接受的安排 → 轻量确认，不进编辑表单（主页冲突处理 forceEdit 除外）
-      if (!forceEdit && (ev.type === "exam" || ev.ddl_id || ev.source === "ddl")) {
+    openEventSheet(ev) {
+      // 考试本体 / 批奏折接受的安排 → 轻量确认；普通日程 → 只读详情（改/删去主页）
+      if (ev.type === "exam" || ev.ddl_id || ev.source === "ddl") {
         this.sugEv = ev;
         this.sugEvMode = ev.type === "exam" ? "exam" : "sug";
         this.showSugEv = true;
         return;
       }
-      this._evId = ev.id;
-      this._evLoc = ev.location || "";  // 编辑不改地点，保存时原样带回
       this.evDraft = {
         title: ev.title,
         note: ev.note || "",
         icon: ev.icon || "",
+        loc: ev.location || "",
         timeStatus: ev.time_status || "exact",
-        colorIdx: (ev.color_idx || 0) % this.evColors.length,
         sd: String(ev.start_at).slice(0, 10),
         st: String(ev.start_at).slice(11, 16),
         ed: String(ev.end_at).slice(0, 10),
         et: String(ev.end_at).slice(11, 16),
       };
-      this.evClash = null;
+      this.evSeriesN = ev.series_count || (ev.series_id ? 2 : 1);
       this.showEvSheet = true;
-      this.checkEvClash();
-    },
-    async saveEvent() {
-      const d = this.evDraft;
-      if (!d.title.trim()) {
-        uni.showToast({ title: "写个标题", icon: "none" });
-        return;
-      }
-      const start_at = `${d.sd} ${d.st}:00`;
-      const end_at = `${d.ed} ${d.et}:00`;
-      if (end_at <= start_at) {
-        uni.showToast({ title: "结束要晚于开始", icon: "none" });
-        return;
-      }
-      try {
-        await api.put("/api/events/" + this._evId, {
-          title: d.title.trim(),
-          note: (d.note || "").trim(),
-          icon: d.icon || "",
-          location: this._evLoc || "",
-          time_status: d.timeStatus || "exact",
-          color_idx: d.colorIdx,
-          start_at,
-          end_at,
-        });
-        this.showEvSheet = false;
-        uni.showToast({
-          title: this.evClash ? "已保存，冲突见主页 ⚠️" : "已更新 ✓",
-          icon: "none",
-        });
-        this.load();
-      } catch (e) {
-        uni.showToast({ title: e.message, icon: "none" });
-      }
-    },
-    delEvent(ev) {
-      uni.showModal({
-        title: "删除日程",
-        content: ev.title,
-        confirmText: "删除",
-        success: async (res) => {
-          if (res.confirm) {
-            await api.del("/api/events/" + ev.id);
-            uni.showToast({ title: "已删除", icon: "none" });
-            this.load();
-          }
-        },
-      });
     },
     async doneSugEv() {
       if (!this.sugEv) return;
@@ -1542,6 +1387,32 @@ export default {
   font-weight: 600;
   margin-bottom: 24rpx;
 }
+/* 日程详情弹层（只读，改/删在添加日程页） */
+.detail-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+.detail-row {
+  display: flex;
+  gap: 20rpx;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f1f2f6;
+}
+.detail-row:last-of-type {
+  border-bottom: none;
+}
+.d-label {
+  width: 76rpx;
+  flex-shrink: 0;
+  color: #6b7280;
+  font-size: 26rpx;
+}
+.d-val {
+  flex: 1;
+  font-size: 26rpx;
+  overflow-wrap: break-word;
+}
 .form-row {
   display: flex;
   align-items: center;
@@ -1563,13 +1434,6 @@ export default {
 /* ---------- 窄屏（竖屏手机）关键信息模式 ----------
    只留课名两行截断 + 色块 + 节次号，地点/教师/日程备注藏起来（点卡片弹窗看）。
    横屏 / ≥600px 宽自动恢复完整展示。 */
-.rotate-hint {
-  font-size: 20rpx;
-  color: #8a91a3;
-  text-align: center;
-  margin: 6rpx 0 10rpx;
-}
-
 /* FR-51 今日概览卡片 */
 .today-card {
   background: #fff;
@@ -1851,9 +1715,6 @@ export default {
 .wide .wk-btn,
 .wide .wk-cur {
   font-size: 21rpx;
-}
-.wide .rotate-hint {
-  display: none; /* 宽屏模式不显示"去横屏"提示 */
 }
 .form-row input {
   flex: 1;

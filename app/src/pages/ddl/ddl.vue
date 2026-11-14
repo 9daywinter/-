@@ -32,7 +32,7 @@
             <text class="remain" :class="d.tier">{{ d.remain_text }}</text>
           </view>
           <view class="ddl-ops">
-            <text class="op" @click="toggleDone(d)">✓ 完成</text>
+            <text class="op" @click="toggleDone(d)">✓</text>
             <text class="op" @click="openEdit(d)">✎</text>
             <text class="op danger" @click="del(d)">🗑</text>
           </view>
@@ -72,7 +72,7 @@
           <text class="remain" :class="d.tier">{{ d.remain_text }}</text>
         </view>
         <view class="ddl-ops">
-          <text class="op" @click="toggleDone(d)">{{ d.status === "done" ? "↩ 撤销" : "✓ 完成" }}</text>
+          <text class="op" @click="toggleDone(d)">{{ d.status === "done" ? "↩" : "✓" }}</text>
           <text class="op" @click="openEdit(d)">✎</text>
           <text class="op danger" @click="del(d)">🗑</text>
         </view>
@@ -456,18 +456,22 @@ export default {
   gap: 6rpx;
 }
 .title { font-size: 30rpx; font-weight: 600; }
-.sub { font-size: 22rpx; color: #8a91a3; }
+.sub {
+  font-size: 22rpx;
+  color: #8a91a3;
+  overflow-wrap: break-word; /* 时间数字串放不下时折行，不滑进右侧按钮底下被挡 */
+}
 .remain { font-size: 24rpx; font-weight: 600; }
 .remain.red, .remain.overdue { color: #dc2626; }
 .remain.yellow { color: #d97706; }
 .remain.green { color: #059669; }
 
-.ddl-ops { flex-shrink: 0; display: flex; gap: 16rpx; align-items: center; }
+.ddl-ops { flex-shrink: 0; display: flex; gap: 10rpx; align-items: center; }
 .op {
   font-size: 22rpx;
   color: #4f46e5;
   background: #eef2ff;
-  padding: 8rpx 16rpx;
+  padding: 8rpx 12rpx;
   border-radius: 999rpx;
 }
 .op.danger { color: #dc2626; background: #fee2e2; }

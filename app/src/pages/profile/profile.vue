@@ -62,11 +62,11 @@
       </view>
     </view>
 
-    <!-- 我的日程 -->
+    <!-- 我的日程：点一条去「添加日程」页修改 -->
     <view class="card">
       <view class="card-title">🗓️ 我的日程（{{ stats.events }}）</view>
       <view v-if="!events.length" class="empty-tip">还没有日程，去课表页「➕ 添加日程」</view>
-      <view v-for="e in events" :key="e.id" class="ev-row">
+      <view v-for="e in events" :key="e.id" class="ev-row" @click="goEditEvent(e.id)">
         <text class="ev-icon">{{ e.icon || defaultIcon }}</text>
         <view class="ev-mid">
           <text class="ev-title">{{ e.title }}<text v-if="e.series_count > 1" class="series-tag"> 🔁×{{ e.series_count }}</text></text>
@@ -222,6 +222,10 @@ export default {
       uni.setStorageSync("_autoAdd", 1);
       uni.reLaunch({ url: "/pages/index/index" });
     },
+    goEditEvent(id) {
+      // 跳到添加日程页，自动载入这条日程进编辑（add.vue 读 ?edit=）
+      uni.navigateTo({ url: "/pages/add/add?edit=" + id });
+    },
     // ---- 备份与恢复（v2：数据全在本机） ----
     exportBackup() {
       const json = exportAll();
@@ -337,6 +341,12 @@ export default {
   font-size: 30rpx;
   font-weight: 600;
   margin-bottom: 8rpx;
+}
+.card-sub {
+  font-size: 20rpx;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 12rpx;
 }
 .btn {
   text-align: center;
@@ -567,9 +577,7 @@ export default {
 .ev-sub {
   font-size: 22rpx;
   color: #8a91a3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word; /* 时间放不下折行，不裁省略号 */
 }
 .ev-status {
   flex-shrink: 0;
@@ -578,9 +586,6 @@ export default {
   background: #eef2ff;
   border-radius: 999rpx;
   padding: 6rpx 16rpx;
-  max-width: 170rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .series-tag { font-size: 20rpx; color: #4f46e5; font-weight: 700; }
