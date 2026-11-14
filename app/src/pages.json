@@ -1,0 +1,54 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "拼时间 · 课表"
+			}
+		},
+		{
+			"path": "pages/term/term",
+			"style": {
+				"navigationBarTitleText": "设置学期"
+			}
+		},
+		{
+			"path": "pages/import/import",
+			"style": {
+				"navigationBarTitleText": "导入课表"
+			}
+		},
+		{
+			"path": "pages/voice/voice",
+			"style": {
+				"navigationBarTitleText": "添加日程"
+			}
+		},
+		{
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "个人主页"
+			}
+		},
+		{
+			"path": "pages/ddl/ddl",
+			"style": {
+				"navigationBarTitleText": "DDL 倒计时"
+			}
+		},
+		{
+			"path": "pages/group/group",
+			"style": {
+				"navigationBarTitleText": "拼小组"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "拼时间",
+		"navigationBarBackgroundColor": "#4F46E5",
+		"backgroundColor": "#F5F6FA",
+		"rpxCalcMaxDeviceWidth": 1600,
+		"rpxCalcBaseDeviceWidth": 750
+	}
+}
