@@ -440,15 +440,14 @@ export default {
     "evDraft.et": "_evClashTick",
     "evDraft.timeStatus": "_evClashTick",
   },
-  onLoad(opts) {
-    // 主页「添加课程」跳转过来时自动弹加课表单（reLaunch 携带 ?add=1）
-    this._autoAdd = !!(opts && opts.add);
-  },
   async onShow() {
     this.updateWide();
     await this.load();
-    if (this._autoAdd) {
-      this._autoAdd = false;
+    // 主页「添加课程」跳转过来时自动弹加课表单。
+    // 用一次性存储标记而不是网址参数——参数会留在地址栏，浏览器刷新会再触发一次
+    const autoAdd = uni.getStorageSync("_autoAdd");
+    if (autoAdd) {
+      uni.removeStorageSync("_autoAdd");
       if (this.term) this.openAdd(); // 没设学期时不弹，让用户先看到设置学期引导
     }
   },

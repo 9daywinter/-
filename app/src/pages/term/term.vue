@@ -140,10 +140,13 @@ export default {
   margin-top: 60rpx;
   background: #4f46e5;
   color: #fff;
-  font-size: 30rpx;
+  font-size: 31rpx;
   border-radius: 14rpx;
   height: 88rpx;
-  line-height: 1;
+  line-height: 88rpx; /* 行高=按钮高，兜底垂直居中 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
 }
 .save::after {

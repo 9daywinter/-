@@ -217,8 +217,10 @@ export default {
       uni.navigateTo({ url: "/pages/ddl/ddl" });
     },
     goAddCourse() {
-      // 跳回课表页并自动弹加课表单（index.vue 读 ?add=1）
-      uni.reLaunch({ url: "/pages/index/index?add=1" });
+      // 跳回课表页并自动弹加课表单（index.vue 读一次性标记 _autoAdd，
+      // 不用网址参数：参数留在地址栏，刷新会再弹一次）
+      uni.setStorageSync("_autoAdd", 1);
+      uni.reLaunch({ url: "/pages/index/index" });
     },
     // ---- 备份与恢复（v2：数据全在本机） ----
     exportBackup() {
