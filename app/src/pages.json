@@ -3,7 +3,7 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "拼时间 · 课表"
+				"navigationBarTitleText": "九日冬のschedule"
 			}
 		},
 		{
@@ -33,7 +33,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "拼时间",
+		"navigationBarTitleText": "九日冬のschedule",
 		"navigationBarBackgroundColor": "#4F46E5",
 		"backgroundColor": "#F5F6FA",
 		"rpxCalcMaxDeviceWidth": 1600,
