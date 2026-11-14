@@ -121,7 +121,7 @@
 
     <!-- 课程详情：点框外直接退出（无关闭按钮），管理收进右上角 ⋯，以后好加项 -->
     <view v-if="showCourse && courseDetail" class="sheet-mask" @click="closeCourse">
-      <view class="sheet course-sheet" @click.stop>
+      <view class="sheet center-sheet" @click.stop>
         <view class="course-sheet-head">
           <view class="course-sheet-title">
             <view class="course-dot" :style="{ background: courseColor(courseDetail.name)[0] }"></view>
@@ -201,41 +201,24 @@
       </view>
     </view>
 
-    <!-- 日程详情：与课程详情同款居中框，点框外退出（改/删在添加日程页） -->
+    <!-- 日程详情：与课程详情同款居中框，点框外退出（改/删在各自页面） -->
     <view v-if="showEvSheet" class="sheet-mask" @click="showEvSheet = false">
       <view class="sheet center-sheet" @click.stop>
         <view class="course-sheet-head">
           <view class="course-sheet-title">
-            <text class="course-sheet-name">{{ evDraft.icon || defaultIcon }} {{ evDraft.title }}</text>
+            <text class="course-sheet-name">{{ evFromExam ? "📝" : (evDraft.icon || defaultIcon) }} {{ evDraft.title }}</text>
           </view>
         </view>
         <view class="detail-row"><text class="d-label">时间</text><text class="d-val">{{ evDetailTime }}</text></view>
-        <view class="detail-row"><text class="d-label">状态</text><text class="d-val">{{ evStatusLabel }}</text></view>
+        <view v-if="evFromExam || evFromDdl" class="detail-row">
+          <text class="d-label">{{ evFromExam ? "类型" : "来源" }}</text>
+          <text class="d-val">{{ evFromExam ? "📝 考试" : "📌 DDL 安排" }}</text>
+        </view>
+        <view v-else class="detail-row"><text class="d-label">状态</text><text class="d-val">{{ evStatusLabel }}</text></view>
         <view v-if="evDraft.loc" class="detail-row"><text class="d-label">地点</text><text class="d-val">{{ evDraft.loc }}</text></view>
         <view v-if="evDraft.note" class="detail-row"><text class="d-label">备注</text><text class="d-val">{{ evDraft.note }}</text></view>
-        <view v-if="evSeriesN > 1" class="detail-row"><text class="d-label">重复</text><text class="d-val">🔁 共 {{ evSeriesN }} 条</text></view>
+        <view v-if="evSeriesN > 1 && !evFromExam && !evFromDdl" class="detail-row"><text class="d-label">重复</text><text class="d-val">🔁 共 {{ evSeriesN }} 条</text></view>
         <view class="course-sheet-tip">点框外退出</view>
-      </view>
-    </view>
-
-    <!-- 已排的 DDL 安排 / 考试本体：轻量确认（不是编辑表单），点框外退出 -->
-    <view v-if="showSugEv && sugEv" class="sheet-mask" @click="showSugEv = false">
-      <view class="sheet sug-ev-sheet" @click.stop>
-        <view class="sheet-title">{{ sugEvMode === "exam" ? "📝 考试" : "📌 已排好的时间" }}</view>
-        <view class="sug-ev-body" :class="{ exam: sugEvMode === 'exam' }">
-          <text class="sug-ev-title">{{ sugEv.title }}</text>
-          <text class="sug-ev-time">🕐 {{ evRangeText(sugEv) }}</text>
-          <text v-if="sugEv.location" class="sug-ev-loc">📍 {{ sugEv.location }}</text>
-          <text v-if="sugEv.note" class="sug-ev-note">{{ sugEv.note }}</text>
-          <text class="sug-ev-hint">{{ sugEvMode === "exam" ? "考试时间/地点/备注在 DDL 页改" : "关联 DDL 的时间安排 · 做完了就点「完成 DDL」打卡" }}</text>
-        </view>
-        <view class="sheet-btns" v-if="sugEvMode !== 'exam'">
-          <button class="btn-plain" @click="delSugEv">删除安排</button>
-          <button class="btn-primary" @click="doneSugEv">✓ 完成 DDL</button>
-        </view>
-        <view class="sheet-btns" v-else>
-          <button class="btn-primary" @click="go('/pages/ddl/ddl')">去 DDL 页管理</button>
-        </view>
       </view>
     </view>
 
@@ -336,9 +319,8 @@ export default {
       courseFormMode: "add",
       showCourse: false, // 课程详情弹层（点框外退出，管理收在右上角 ⋯）
       courseDetail: null,
-      showSugEv: false, // 📌 已排 DDL 安排 / 📝 考试的轻量确认弹层
-      sugEv: null,
-      sugEvMode: "sug", // sug=批奏折安排 | exam=考试本体
+      evFromExam: false, // 详情对象是考试本体
+      evFromDdl: false,  // 详情对象是 DDL 关联安排
       conflicts: [], // 全量扫描出的时间冲突（主页集中改/删）
       showConflicts: false,
       selConflict: -1,
@@ -775,13 +757,7 @@ export default {
       return plain;
     },
     openEventSheet(ev) {
-      // 考试本体 / 批奏折接受的安排 → 轻量确认；普通日程 → 只读详情（改/删去主页）
-      if (ev.type === "exam" || ev.ddl_id || ev.source === "ddl") {
-        this.sugEv = ev;
-        this.sugEvMode = ev.type === "exam" ? "exam" : "sug";
-        this.showSugEv = true;
-        return;
-      }
+      // 统一只读详情：普通日程/考试/DDL 安排都进同一个居中框（改/删在各自页面）
       this.evDraft = {
         title: ev.title,
         note: ev.note || "",
@@ -794,40 +770,9 @@ export default {
         et: String(ev.end_at).slice(11, 16),
       };
       this.evSeriesN = ev.series_count || (ev.series_id ? 2 : 1);
+      this.evFromExam = ev.type === "exam";
+      this.evFromDdl = !this.evFromExam && (!!ev.ddl_id || ev.source === "ddl");
       this.showEvSheet = true;
-    },
-    async doneSugEv() {
-      if (!this.sugEv) return;
-      try {
-        await api.post(`/api/ddls/${this.sugEv.ddl_id}/done`);
-        this.showSugEv = false;
-        this.sugEv = null;
-        uni.showToast({ title: "DDL 完成 🎉", icon: "none" });
-        this.load();
-      } catch (e) {
-        uni.showToast({ title: e.message, icon: "none" });
-      }
-    },
-    delSugEv() {
-      const ev = this.sugEv;
-      if (!ev) return;
-      uni.showModal({
-        title: "删除安排",
-        content: `删掉「${ev.title}」这个已排时间？`,
-        confirmText: "删除",
-        success: async (r) => {
-          if (!r.confirm) return;
-          try {
-            await api.del("/api/events/" + ev.id);
-            this.showSugEv = false;
-            this.sugEv = null;
-            uni.showToast({ title: "已删除", icon: "none" });
-            this.load();
-          } catch (e) {
-            uni.showToast({ title: e.message, icon: "none" });
-          }
-        },
-      });
     },
     goTerm() {
       uni.navigateTo({ url: "/pages/term/term" });
@@ -1145,7 +1090,6 @@ export default {
 .ddl-chip.more { background: #eef2ff; color: #4f46e5; }
 
 /* 课程详情弹层：头部色点+课名，右上角 ⋯ 菜单 */
-.course-sheet { border-radius: 24rpx; margin: 0 24rpx 80rpx; width: auto; max-width: 620rpx; align-self: center; }
 .course-sheet-head {
   display: flex;
   align-items: center;
@@ -1180,28 +1124,6 @@ export default {
 .cr-label { width: 64rpx; font-size: 24rpx; color: #8a91a3; flex-shrink: 0; }
 .cr-val { font-size: 27rpx; color: #374151; flex: 1; min-width: 0; }
 .course-sheet-tip { text-align: center; font-size: 22rpx; color: #b0b5c1; margin-top: 24rpx; }
-
-/* 已排 DDL 安排确认弹层 */
-.sug-ev-sheet { border-radius: 24rpx; }
-.sug-ev-body {
-  background: #f8f9fc;
-  border-radius: 16rpx;
-  padding: 28rpx 24rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
-}
-.sug-ev-title { font-size: 32rpx; font-weight: 700; color: #1f2333; }
-.sug-ev-time { font-size: 28rpx; color: #4f46e5; font-weight: 600; }
-.sug-ev-loc { font-size: 26rpx; color: #374151; }
-.sug-ev-note { font-size: 24rpx; color: #8a91a3; }
-.sug-ev-hint { font-size: 22rpx; color: #b0b5c1; margin-top: 8rpx; }
-.sug-ev-body.exam {
-  background: #fef2f2;
-  border: 2rpx solid #fca5a5;
-}
-.sug-ev-body.exam .sug-ev-title { color: #b91c1c; }
-.sug-ev-body.exam .sug-ev-time { color: #991b1b; }
 .grid-body {
   display: flex;
   background: #fff;
@@ -1388,8 +1310,16 @@ export default {
   font-weight: 600;
   margin-bottom: 24rpx;
 }
-/* 居中详情框：课程详情在用，日程详情同款（底部 sheet 的居中变体） */
-.center-sheet { border-radius: 24rpx; margin: 0 24rpx 80rpx; width: auto; max-width: 620rpx; align-self: center; }
+/* 居中详情框：课程/日程详情共用。固定宽度（两框一样大），
+   左右 auto 让 flex 主轴真正居中，align-self 垂直居中 */
+.center-sheet {
+  width: 640rpx;
+  max-width: calc(100% - 48rpx);
+  border-radius: 24rpx;
+  margin-left: auto;
+  margin-right: auto;
+  align-self: center;
+}
 /* 日程详情行 */
 .detail-row {
   display: flex;
