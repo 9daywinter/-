@@ -88,8 +88,9 @@
               :style="{ top: l.y + 'rpx' }"
             ></view>
           </view>
-          <!-- 现在时刻线：只在看"本周"且当前时间落在网格范围内时出现，每 30 秒走一格 -->
+          <!-- 现在时刻线：线沉底不压字，时间胶囊独立浮在左端（每 30 秒走一格） -->
           <view v-if="nowLineY !== null" class="now-line" :style="{ top: nowLineY + 'rpx' }"></view>
+          <text v-if="nowLineY !== null" class="now-tag" :style="{ top: nowLineY + 'rpx' }">{{ nowText }}</text>
           <view v-for="d in 7" :key="d" class="day-col">
             <view v-if="padTopMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
             <view v-for="s in SLOT_COUNT" :key="s" class="slot-cell"></view>
@@ -120,9 +121,6 @@
         </view>
       </view>
     </block>
-
-    <!-- 现在时刻：屏幕最底一条固定显示（线在网格上走，时间压在最底不挡表） -->
-    <view v-if="nowLineY !== null" class="now-bar">🔴 现在 {{ nowText }}</view>
 
     <!-- 课程详情：点框外直接退出（无关闭按钮），管理收进右上角 ⋯，以后好加项 -->
     <view v-if="showCourse && courseDetail" class="sheet-mask" @click="closeCourse">
@@ -1084,8 +1082,7 @@ export default {
   height: 1rpx;
   background: #d6dce6;
 }
-/* 现在时刻线：放在最底层（课块 z1/日程块 z2 之下），从空格子里透出来，
-   不压任何文字；pointer-events 关掉也不挡点击 */
+/* 现在时刻线：线在最底层（课块 z1/日程块 z2 之下），从空格透出不压字 */
 .now-line {
   position: absolute;
   left: 0;
@@ -1096,18 +1093,20 @@ export default {
   z-index: 0;
   pointer-events: none;
 }
-/* 现在时刻文字：固定在屏幕最底，薄薄一条不挡表 */
-.now-bar {
-  position: fixed;
+/* 时间胶囊：独立元素浮在线左端（不能当线的子元素——线 z0 成了叠层上下文，
+   子元素会被一起压到底层让块盖住） */
+.now-tag {
+  position: absolute;
   left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 8;
-  text-align: center;
-  font-size: 22rpx;
-  color: #ef4444;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 6rpx 0 calc(6rpx + env(safe-area-inset-bottom));
+  top: 0;
+  transform: translateY(-50%);
+  background: #ef4444;
+  color: #fff;
+  font-size: 18rpx;
+  line-height: 1.2;
+  padding: 2rpx 8rpx;
+  border-radius: 8rpx;
+  z-index: 3;
   pointer-events: none;
 }
 .grid-line.strong {
