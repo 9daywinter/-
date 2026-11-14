@@ -88,6 +88,10 @@
               :style="{ top: l.y + 'rpx' }"
             ></view>
           </view>
+          <!-- 现在时刻线：只在看"本周"且当前时间落在网格范围内时出现，每 30 秒走一格 -->
+          <view v-if="nowLineY !== null" class="now-line" :style="{ top: nowLineY + 'rpx' }">
+            <text class="now-tag">{{ nowText }}</text>
+          </view>
           <view v-for="d in 7" :key="d" class="day-col">
             <view v-if="padTopMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
             <view v-for="s in SLOT_COUNT" :key="s" class="slot-cell"></view>
@@ -326,6 +330,7 @@ export default {
       selConflict: -1,
       selItem: -1,
       todayView: { courses: [], ddls: [], sugCount: 0 }, // FR-51 今日概览
+      nowMin: -1, // 当前分钟数（-1 = 不显示现在线）
     };
   },
   computed: {
@@ -353,9 +358,21 @@ export default {
       const t = TIME_STATUS.find((x) => x.key === (this.evDraft.timeStatus || "exact"));
       return t ? t.label.slice(2) : "准点";
     },
+    // 现在时刻线的纵坐标：只在看本周、且当前时间落在网格范围内时有效
+    nowLineY() {
+      if (this.nowMin < 0 || !this.term || this.week !== this.term.current_week) return null;
+      const bottom = hms(SLOT_TIMES[SLOT_COUNT - 1][1]) + this.padBottomMin; // 末节结束 + 底部留白
+      if (this.nowMin < this.gridStartMin || this.nowMin > bottom) return null;
+      return Math.round(this.minToYrpx(this.nowMin));
+    },
+    nowText() {
+      const m = this.nowMin;
+      return m < 0 ? "" : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+    },
   },
   async onShow() {
     this.updateWide();
+    this.startNowTimer();
     await this.load();
     // 主页「添加课程」跳转过来时自动弹加课表单。
     // 用一次性存储标记而不是网址参数——参数会留在地址栏，浏览器刷新会再触发一次
@@ -365,6 +382,12 @@ export default {
       if (this.term) this.openAdd(); // 没设学期时不弹，让用户先看到设置学期引导
     }
   },
+  onHide() {
+    this.stopNowTimer(); // 离开页面不必刷新
+  },
+  onUnload() {
+    this.stopNowTimer();
+  },
   mounted() {
     this.updateWide();
     // 横竖屏切换实时响应（H5 + App 通用 API）
@@ -372,11 +395,26 @@ export default {
     if (uni.onWindowResize) uni.onWindowResize(this._onWinResize);
   },
   beforeUnmount() {
+    this.stopNowTimer();
     if (this._onWinResize && uni.offWindowResize) {
       uni.offWindowResize(this._onWinResize);
     }
   },
   methods: {
+    // ---- 现在时刻线：每 30 秒对一次表 ----
+    startNowTimer() {
+      this.tickNow();
+      clearInterval(this._nowT);
+      this._nowT = setInterval(() => this.tickNow(), 30000);
+    },
+    tickNow() {
+      const d = new Date();
+      this.nowMin = d.getHours() * 60 + d.getMinutes();
+    },
+    stopNowTimer() {
+      clearInterval(this._nowT);
+      this._nowT = null;
+    },
     updateWide() {
       try {
         const info = uni.getSystemInfoSync();
@@ -1044,6 +1082,29 @@ export default {
   right: 0;
   height: 1rpx;
   background: #d6dce6;
+}
+/* 现在时刻线：红色横线 + 左端时间胶囊，压在课块/日程块之上 */
+.now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3rpx;
+  background: #ef4444;
+  border-radius: 2rpx;
+  z-index: 3;
+  pointer-events: none; /* 不挡下面的课块点击 */
+}
+.now-tag {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ef4444;
+  color: #fff;
+  font-size: 18rpx;
+  line-height: 1.2;
+  padding: 2rpx 8rpx;
+  border-radius: 8rpx;
 }
 .grid-line.strong {
   background: #b8c1d0;
