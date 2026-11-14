@@ -13,3 +13,4 @@ schedule.db
 server/.env
 
 .DS_Store
+pintime_backup_*.json
