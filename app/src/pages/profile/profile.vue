@@ -40,6 +40,11 @@
         <text class="val">{{ termText }}</text>
         <text class="arrow">›</text>
       </view>
+      <view class="row" @click="showTtImport = true">
+        <text class="label">从文件导入课表</text>
+        <text class="val">换学期用：粘贴电脑端脚本生成的 JSON，只换课表</text>
+        <text class="arrow">›</text>
+      </view>
       <view class="row" @click="resetCourses">
         <text class="label">新学期重置</text>
         <text class="val danger">清空全部课程，重设开学日期</text>
@@ -112,12 +117,30 @@
         </view>
       </view>
     </view>
+
+    <!-- 课表导入弹层（换学期）：只替换课程 -->
+    <view v-if="showTtImport" class="sheet-mask" @click="showTtImport = false">
+      <view class="sheet" @click.stop>
+        <view class="sheet-title">从文件导入课表</view>
+        <textarea
+          v-model="ttText"
+          class="import-ta"
+          placeholder="电脑上运行 scripts/import_timetable.py（教务导出的 docx/xlsx）生成 timetable.json，把内容整段粘贴到这里"
+          :maxlength="-1"
+        />
+        <view class="import-tip">🔄 只替换课程，日程 / DDL / 学期设置都保留。换学期记得先到「本学期」改开学日期</view>
+        <view class="sheet-btns">
+          <button class="mini ghost-btn" @click="showTtImport = false">取消</button>
+          <button class="mini solid-btn" @click="doImportTt">替换课表</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import { api, getUser } from "../../utils/api";
-import { exportAll, importAll } from "../../utils/db";
+import { exportAll, importAll, importTimetable } from "../../utils/db";
 import { DAY_NAMES, TIME_STATUS } from "../../utils/slots";
 
 export default {
@@ -132,6 +155,8 @@ export default {
       nickDraft: "",
       showImport: false,
       importText: "",
+      showTtImport: false,
+      ttText: "",
     };
   },
   computed: {
@@ -216,6 +241,25 @@ export default {
       this.importText = "";
       uni.showToast({ title: `已导入 ${counts.courses} 课/${counts.events} 程/${counts.ddls} DDL`, icon: "none" });
       setTimeout(() => uni.reLaunch({ url: "/pages/index/index" }), 800);
+    },
+    // 换学期：只替换课程（教务文件 → PC 脚本 → 粘贴）
+    doImportTt() {
+      const text = (this.ttText || "").trim();
+      if (!text) {
+        uni.showToast({ title: "先粘贴课表 JSON", icon: "none" });
+        return;
+      }
+      let n;
+      try {
+        n = importTimetable(text);
+      } catch (e) {
+        uni.showToast({ title: e.message, icon: "none" });
+        return;
+      }
+      this.showTtImport = false;
+      this.ttText = "";
+      uni.showToast({ title: `已导入 ${n} 门课`, icon: "none" });
+      this.load();
     },
     // 新学期：清空课程 → 跳学期页改开学日期 → 重新导入
     resetCourses() {

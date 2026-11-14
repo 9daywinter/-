@@ -500,6 +500,43 @@ export function importAll(json) {
   };
 }
 
+// 换学期专用：只替换课程（scripts/import_timetable.py 生成的 JSON），
+// 日程 / DDL / 学期设置 / 昵称全部保留。周次按当前学期的总周数做双保险裁剪。
+export function importTimetable(json) {
+  let data;
+  try {
+    data = typeof json === "string" ? JSON.parse(json) : json;
+  } catch (e) {
+    throw new Error("不是合法的 JSON");
+  }
+  if (!data || data.app !== "pintime" || data.kind !== "timetable" || !Array.isArray(data.courses)) {
+    throw new Error("不是课表导入文件（应由 PC 端 import_timetable.py 生成）");
+  }
+  const total = (getTerm() || {}).total_weeks || data.total_weeks || 20;
+  const allWeeks = Array.from({ length: total }, (_, i) => i + 1);
+  const cleaned = [];
+  for (const c of data.courses) {
+    if (!c || !c.name || !(c.day_of_week >= 1 && c.day_of_week <= 7)) continue;
+    const s = Math.max(1, Math.min(c.start_slot || 1, SLOT_TIMES.length));
+    const e = Math.max(1, Math.min(c.end_slot || 1, SLOT_TIMES.length));
+    const weeks = [...new Set((c.weeks || []).filter((w) => w >= 1 && w <= total))].sort((a, b) => a - b);
+    cleaned.push({
+      id: nextId(),
+      name: String(c.name).slice(0, 60),
+      teacher: String(c.teacher || "").slice(0, 30),
+      location: String(c.location || "").slice(0, 60),
+      day_of_week: c.day_of_week,
+      start_slot: Math.min(s, e),
+      end_slot: Math.max(s, e),
+      weeks: weeks.length ? weeks : allWeeks,
+      remark: "",
+    });
+  }
+  if (!cleaned.length) throw new Error("文件里没有有效课程");
+  save(K.courses, cleaned);
+  return cleaned.length;
+}
+
 // ---------- 路由表（与原 FastAPI 接口一一对应） ----------
 
 function get(arr, id) {
