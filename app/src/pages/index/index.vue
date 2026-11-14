@@ -840,10 +840,10 @@ export default {
       const h = this.evGeom(ev).h;
       const k = this.isWide ? 0.78 : 1;
       const s = (n) => Math.round(n * k);
-      if (h >= 200) return { title: s(30), sub: s(26), note: s(26), showNote: true };
-      if (h >= 120) return { title: s(27), sub: s(23), note: s(23), showNote: true };
-      if (h >= 70) return { title: s(25), sub: s(21), note: 0, showNote: false };
-      return { title: s(23), sub: s(19), note: 0, showNote: false };
+      if (h >= 200) return { title: s(32), sub: s(28), note: s(28), showNote: true };
+      if (h >= 120) return { title: s(29), sub: s(25), note: s(25), showNote: true };
+      if (h >= 70) return { title: s(27), sub: s(23), note: 0, showNote: false };
+      return { title: s(25), sub: s(21), note: 0, showNote: false };
     },
     evTone(ev) {
       // 考试本体：朱红渐变 + 金边 + 白字，课表上一眼认出（与课程块/日程块完全不同）
@@ -1430,12 +1430,13 @@ export default {
   box-sizing: border-box; /* 高度按 JS 指定的整盒算，否则 content-box 会多出 20rpx 压到下一节 */
   display: flex;
   flex-direction: column;
+  justify-content: center; /* 单节课的短内容垂直居中，不顶上沿 */
   gap: 4rpx;
   overflow: hidden;
   z-index: 1;
 }
 .course-name {
-  font-size: 27rpx;
+  font-size: 29rpx;
   font-weight: 600;
   line-height: 1.25;
 }
@@ -1456,6 +1457,7 @@ export default {
   box-sizing: border-box; /* 同 .course：内边距+边框计入高度，避免压到相邻时段 */
   display: flex;
   flex-direction: column;
+  justify-content: center; /* 短日程垂直居中，不顶上沿 */
   gap: 2rpx;
   overflow: hidden;
   z-index: 2;
@@ -1772,7 +1774,7 @@ export default {
   display: none;
 }
 .narrow .course-name {
-  font-size: 20rpx;
+  font-size: 22rpx;
   line-height: 1.25;
   display: -webkit-box;
   -webkit-box-orient: vertical;
