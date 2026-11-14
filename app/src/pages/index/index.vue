@@ -51,7 +51,6 @@
 
       <!-- 课表头部：星期行（当天有 DDL 的列挂红色小药丸，区别于课/日程块） -->
       <view class="grid-head">
-        <view v-if="hourLines.length" class="col-hours"></view>
         <view class="col-label"></view>
         <view class="col-day" v-for="d in 7" :key="d">
           <text class="day-name">周{{ DAY_NAMES[d - 1] }}</text>
@@ -64,22 +63,17 @@
         </view>
       </view>
 
-      <!-- 课表网格：小时标尺 + 节次列 + 7 天（无留白时刻度列整体隐藏，不空占宽度） -->
+      <!-- 课表网格：节次列 + 7 天。课前/课后的留白区不再强调"无课"，
+           时刻直接标在节次列（对齐整时线），不占额外宽度 -->
       <view class="grid-body">
-        <view v-if="hourLines.length" class="col-hours">
+        <view class="col-labels">
+          <view v-if="padTopMin > 0" class="pad-cell" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
           <view
             v-for="l in hourLines"
-            :key="'h' + l.h"
-            class="hour-line"
-            :style="hourLineStyle(l)"
-          >
-            <text class="hour-num">{{ l.h }}时</text>
-          </view>
-        </view>
-        <view class="col-labels">
-          <view v-if="padTopMin > 0" class="slot-label pad-cell" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }">
-            <text class="pad-tip">无课时段</text>
-          </view>
+            :key="'pt' + l.h"
+            class="pad-time"
+            :style="{ top: Math.max(l.y, 14) + 'rpx' }"
+          >{{ l.h }}:00</view>
           <view v-for="s in SLOT_COUNT" :key="s" class="slot-label">
             <text class="slot-no">{{ s }} <text class="slot-time">{{ SLOT_TIMES[s - 1][0] }}-{{ SLOT_TIMES[s - 1][1] }}</text></text>
             <text v-if="slotGaps[s - 1] > 0" class="slot-gap">课间{{ slotGaps[s - 1] }}分</text>
@@ -810,9 +804,6 @@ export default {
     timeToY(t) {
       return this.minToYrpx(hms(t));
     },
-    hourLineStyle(l) {
-      return { top: l.y + "rpx" };
-    },
     evGeom(ev) {
       const t0 = String(ev.start_at).slice(11, 16) || "08:00";
       const t1 = String(ev.end_at).slice(11, 16) || "09:00";
@@ -1234,11 +1225,6 @@ export default {
   border-radius: 16rpx 16rpx 0 0;
   border-bottom: 1rpx solid #e5e7eb;
 }
-.col-hours {
-  width: 52rpx;
-  flex-shrink: 0;
-  position: relative;
-}
 /* 整时线：只画在无课时段（顶部早段/末节之后），有课区靠每节自己的时间标注 */
 .grid-lines {
   position: absolute;
@@ -1369,6 +1355,7 @@ export default {
 .col-labels {
   width: 132rpx;
   flex-shrink: 0;
+  position: relative; /* 留白区时刻标签的定位包含块 */
 }
 .slot-label {
   position: relative;
@@ -1403,25 +1390,7 @@ export default {
   line-height: 1.3;
   z-index: 1;
 }
-/* 小时标尺列：细线 + 每个点位的时刻 */
-.hour-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  border-top: 1rpx solid #d6dce6;
-}
-.hour-line.strong {
-  border-top-color: #b8c1d0;
-}
-.hour-num {
-  position: absolute;
-  top: -14rpx;
-  right: 6rpx;
-  font-size: 18rpx;
-  color: #9aa1b2;
-  background: #fff;
-  padding: 0 4rpx;
-}
+/* 小时标尺的线只在 .days 里（.grid-line）；时刻标签由 .pad-time 标在节次列 */
 .days {
   display: flex;
   flex: 1;
@@ -1436,15 +1405,16 @@ export default {
   height: 100rpx;
   border-bottom: 1rpx solid #e3e7ef;
 }
-.pad-cell-day,
-.pad-cell {
-  background: #fbfcfe;
-}
-.pad-tip {
-  font-size: 16rpx;
-  color: #c3c9d6;
-  transform: rotate(90deg);
-  white-space: nowrap;
+/* 留白区（课前/课后）占位：不着色不强调"无课"，时刻交给 .pad-time 标注 */
+/* 留白区时刻标签：贴整时线右对齐，比节次时刻大一档 */
+.pad-time {
+  position: absolute;
+  right: 8rpx;
+  transform: translateY(-50%);
+  font-size: 26rpx;
+  color: #8a91a3;
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
 }
 .course {
   position: absolute;
@@ -1831,11 +1801,8 @@ export default {
   display: block;
   font-size: 18rpx;
 }
-.narrow .pad-tip {
-  font-size: 16rpx;
-}
-.narrow .hour-num {
-  font-size: 20rpx;
+.narrow .pad-time {
+  font-size: 24rpx;
 }
 .narrow .ev-title {
   overflow: hidden;
@@ -1871,11 +1838,8 @@ export default {
 .wide .slot-time {
   font-size: 13rpx;
 }
-.wide .hour-num {
-  font-size: 14rpx;
-}
-.wide .pad-tip {
-  font-size: 14rpx;
+.wide .pad-time {
+  font-size: 20rpx;
 }
 .wide .fab {
   font-size: 21rpx;
