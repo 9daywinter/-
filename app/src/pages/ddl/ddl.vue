@@ -86,7 +86,7 @@
           <text class="sub" v-if="d.course_name">📚 {{ d.course_name }} · </text>
           <text class="sub">{{ dueText(d.due_at) }}</text>
           <text class="remain" :class="d.tier">{{ d.remain_text }}</text>
-          <text v-if="d.muted" class="muted-tag" @click="unmute(d)">🔕 已忽略 · 点我恢复建议</text>
+          <text v-if="d.muted" class="muted-tag">🔕 已忽略建议</text>
         </view>
         <view class="ddl-ops">
           <text class="op" @click="toggleDone(d)">{{ d.status === "done" ? "↩" : "✓" }}</text>
@@ -601,15 +601,6 @@ export default {
           this.celebrate = { title: d.title };
           setTimeout(() => (this.celebrate = null), 1500);
         }
-        await this.load();
-      } catch (e) {
-        uni.showToast({ title: e.message, icon: "none" });
-      }
-    },
-    async unmute(d) {
-      try {
-        await api.post(`/api/ddls/${d.id}/unmute`);
-        uni.showToast({ title: "已恢复建议 💡", icon: "none" });
         await this.load();
       } catch (e) {
         uni.showToast({ title: e.message, icon: "none" });

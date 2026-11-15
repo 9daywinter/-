@@ -125,6 +125,9 @@
           placeholder="把之前导出的备份 JSON 整段粘贴到这里"
           :maxlength="-1"
         />
+        <view class="sheet-btns">
+          <button class="mini ghost-btn" @click="pickBackupFile">从聊天选备份文件</button>
+        </view>
         <view class="import-tip">⚠️ 导入会整体替换本机的课程、日程、DDL 和学期设置</view>
         <view class="sheet-btns">
           <button class="mini ghost-btn" @click="showImport = false">取消</button>
@@ -241,22 +244,72 @@ export default {
     },
     // ---- 备份与恢复（走统一数据通道：单机版=本地，小程序云端=云文档） ----
     async exportBackup() {
+      let json;
       try {
-        const json = await api.request("GET", "/api/backup");
-        uni.setClipboardData({
-          data: json,
-          success: () => {
-            uni.showModal({
-              title: "已复制到剪贴板",
-              content: `备份共 ${json.length} 字符。打开备忘录/微信文件传输助手粘贴保存，换机或重装时用「导入备份」恢复。`,
-              showCancel: false,
-            });
+        json = await api.request("GET", "/api/backup");
+      } catch (e) {
+        uni.showToast({ title: e.message, icon: "none" });
+        return;
+      }
+      // #ifdef MP-WEIXIN
+      // 小程序：剪贴板塞大段 JSON 很不可靠，改成写文件 → 转发到聊天
+      // （发给文件传输助手即完成手机→PC 归档）
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+      const fs = uni.getFileSystemManager();
+      const fp = `${wx.env.USER_DATA_PATH}/wuxian_backup_${stamp}.json`;
+      try {
+        fs.writeFileSync(fp, json, "utf8");
+        wx.shareFileMessage({
+          filePath: fp,
+          fileName: `无闲日程表备份_${stamp}.json`,
+          success: () => uni.showToast({ title: "已转发，发给文件传输助手即可存档", icon: "none" }),
+          fail: () => {
+            // 转发面板被取消/失败 → 兜底剪贴板
+            uni.setClipboardData({ data: json });
           },
         });
       } catch (e) {
-        uni.showToast({ title: e.message, icon: "none" });
+        uni.setClipboardData({ data: json });
       }
+      return;
+      // #endif
+      // #ifndef MP-WEIXIN
+      uni.setClipboardData({
+        data: json,
+        success: () => {
+          uni.showModal({
+            title: "已复制到剪贴板",
+            content: `备份共 ${json.length} 字符。打开备忘录/微信文件传输助手粘贴保存，换机或重装时用「导入备份」恢复。`,
+            showCancel: false,
+          });
+        },
+      });
+      // #endif
     },
+    // #ifdef MP-WEIXIN
+    // 从微信聊天里选备份 JSON（如之前转发到文件传输助手的存档）
+    pickBackupFile() {
+      wx.chooseMessageFile({
+        count: 1,
+        type: "file",
+        extension: ["json"],
+        success: (r) => {
+          const f = r.tempFiles && r.tempFiles[0];
+          if (!f) return;
+          uni.getFileSystemManager().readFile({
+            path: f.path,
+            encoding: "utf8",
+            success: (rr) => {
+              this.importText = String(rr.data || "");
+              uni.showToast({ title: "已读入，点「替换本机数据」", icon: "none" });
+            },
+            fail: () => uni.showToast({ title: "读文件失败", icon: "none" }),
+          });
+        },
+      });
+    },
+    // #endif
     async doImport() {
       const text = (this.importText || "").trim();
       if (!text) {
