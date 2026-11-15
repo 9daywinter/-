@@ -48,6 +48,26 @@ check("无时间→todo", n5 && n5.timeStatus === "todo", n5 && n5.timeStatus);
 check("主地点=操场", n5 && n5.location.includes("操场"), n5 && n5.location);
 check("路径细节进备注", n5 && /北门/.test(n5.note || ""), n5 && n5.note);
 
+console.log("== parseNotice 活动通知（用户真样本）==");
+const ev1 = notice.parseNotice(`👨🏻‍🏫华为学堂–XMAGE影像外拍分享主题活动
+
+🌟11月15日华为旗舰店北京王府井特邀影像嘉宾
+
+现场讲解手机外拍构图、光影思路，带你随手拍出质感大片📸
+
+活动流程:
+13:30-14:00 签到集合
+14:00-15:00 嘉宾影像分享
+15:00-16:00 外拍互动 现场指导
+16:00-16:30作品分享
+
+🚏活动地点:
+华为旗舰店北京王府井`, new Date(2026, 10, 15, 20));
+check("多段流程→整体13:30-16:30", ev1 && ev1.startAt.slice(11, 16) === "13:30" && ev1.endAt.slice(11, 16) === "16:30", ev1 && [ev1.startAt, ev1.endAt]);
+check("日期=11月15日", ev1 && ev1.startAt.slice(0, 10) === "2026-11-15", ev1 && ev1.startAt);
+check("地点含旗舰店", ev1 && /旗舰店/.test(ev1.location || ""), ev1 && ev1.location);
+check("标题可用", ev1 && ev1.title && ev1.title !== "群通知事项", ev1 && ev1.title);
+
 console.log("== resolveEventTime 速记 ==");
 const s1 = notice.resolveEventTime("明天11，叫我，有会到24点", NOW);
 check("开始=明天11:00", s1.startAt === "2026-11-16T11:00:00", s1);

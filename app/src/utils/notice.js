@@ -344,6 +344,19 @@ function fixEndPM(startHM, endHM) {
 
 function findTimespan(s) {
   // → { startHM, endHM, conf, crossDay }  conf: 2=标记式 1=连接/跨天 0=单时刻 -1=无线索
+  // 多段流程（活动议程 13:30-14:00 / 14:00-15:00 / …）→ 整体取最早开始~最晚结束，
+  // 优先于标记式（"签到集合"会把首段结尾误认成开始）
+  const ranges = [...s.matchAll(new RegExp(T_RANGE.source, "g"))];
+  if (ranges.length >= 2) {
+    let a = null, b = null;
+    for (const mr of ranges) {
+      const ta = hmOf(mr, "a_h", "a_m", s);
+      const tb = fixEndPM(ta, hmOf(mr, "b_h", "b_m", s));
+      if (!a || ta[0] < a[0] || (ta[0] === a[0] && ta[1] < a[1])) a = ta;
+      if (!b || tb[0] > b[0] || (tb[0] === b[0] && tb[1] > b[1])) b = tb;
+    }
+    return { startHM: a, endHM: b, conf: 1, crossDay: null };
+  }
   const ms = T_START_M.exec(s);
   const me = T_END_M.exec(s);
   if (ms) {
@@ -382,7 +395,8 @@ function findTimespan(s) {
 
 const TITLE_SUFFIX = ("投票|选举|考试|章测|测验|测试|考察|月考|模拟考|统考|补考|缓考|体检|体测|班会|开会|" +
   "会议|讲座|报告|答辩|培训|比赛|竞赛|大赛|讲堂|运动会|招聘会|宣讲会|晚会|演出|展览|" +
-  "报名|打卡|实验|实习|采集|普查|测评|四六级|期末|选课|评教|缴费|注册|报到|返校|放假|集合");
+  "报名|打卡|实验|实习|采集|普查|测评|四六级|期末|选课|评教|缴费|注册|报到|返校|放假|集合|" +
+  "分享会|见面会|开放日|外拍|活动");
 const TITLE_VP = new RegExp(`(?:进行|开展|举行|举办|组织|召开|参加|是|开)([^，。,;；:：\\n]{0,14}?)的?\\s*(${TITLE_SUFFIX})`);
 const TITLE_MOD_NOISE = /咱们|我们|咱|你|我|各位|全体|同学|大家的?|一个|这个|那个/g;
 const RE_SALUT = /^(各位同学|同学们|全体同学|各位|大家|所有人|亲们)/;
@@ -407,7 +421,7 @@ function findTitle(s) {
 
 // ---------- 地点 ----------
 
-const LOC_STRONG = /校区|体育馆|体育场|运动场|图书馆|教学楼|实验楼|实训楼|食堂|礼堂|会堂|报告厅|会议室|教室|广场|操场|活动中心|游泳馆|机房|大厅|门厅|剧场|剧院|音乐厅/;
+const LOC_STRONG = /校区|体育馆|体育场|运动场|图书馆|教学楼|实验楼|实训楼|食堂|礼堂|会堂|报告厅|会议室|教室|广场|操场|活动中心|游泳馆|机房|大厅|门厅|剧场|剧院|音乐厅|旗舰店|门店|体验店|商场|大厦/;
 const LOC_MID = /[馆楼厅室]|中心|基地/;
 const LOC_STOP_R = /[\s，,。、;；:：（）()\-—【】]|举行|举办|开展|进行|召开|参加|记得|开始|结束|开门|关门|进入|找|开|请/;
 const LOC_STOP_L = /[\s，,。、;；:：（）()\-—【】]|就在|在|于|从|去|到|和|与|及|的|找|至/;
