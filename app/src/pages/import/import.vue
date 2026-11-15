@@ -207,7 +207,7 @@ export default {
                 uni.showToast({ title: e.message, icon: "none", duration: 4000 });
               }
             },
-            fail: () => { this.busy = false; uni.showToast({ title: "读文件失败", icon: "none" }); },
+            fail: (err) => { this.busy = false; uni.showToast({ title: "读取:" + ((err && err.errMsg) || "未知"), icon: "none", duration: 4000 }); },
           });
         },
       });
