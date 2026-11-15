@@ -76,6 +76,16 @@
       </view>
     </view>
 
+    <!-- 拼时间：组队对比共同空闲 -->
+    <view class="card">
+      <view class="card-title">👥 拼时间</view>
+      <view class="row" @click="go('/pages/group/group')">
+        <text class="label">组队</text>
+        <text class="val">建组发口令，好友进组看共同空闲</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
     <!-- 课表改动：调课/停课记录 -->
     <view class="card">
       <view class="card-title">🔄 课表改动（{{ stats.changes }}）</view>

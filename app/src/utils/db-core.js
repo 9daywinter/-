@@ -379,8 +379,17 @@ function syncExamEvent(d) {
     return;
   }
   const start = d.due_at;
-  const end = d.exam_end && d.exam_end > start ? d.exam_end
-    : fmtDT(new Date(toDate(start).getTime() + 2 * 3600000));
+  let end;
+  if (d.exam_end && d.exam_end > start) {
+    end = d.exam_end;
+  } else {
+    // 没填结束时间默认 +2h，但封顶当天 23:59——due 23:59 的考试不再拖到次日凌晨
+    // （跨天事件会把网格撑到底边，看起来像被裁掉）
+    const cand = new Date(toDate(start).getTime() + 2 * 3600000);
+    const dayEnd = new Date(toDate(start));
+    dayEnd.setHours(23, 59, 0, 0);
+    end = fmtDT(cand > dayEnd ? dayEnd : cand);
+  }
   if (ev) {
     ev.title = examTitle(d).slice(0, 60);
     ev.location = d.location || "";
