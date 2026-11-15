@@ -269,7 +269,10 @@ function findDate(s, now) {
     [/(大后晚|后晚|明晚|今晚)/, (m) => addDays(dateOnly(now), D_EVE[m[0]])],
     [/(大后天|后天|明天|今天|今日)/, (m) => addDays(dateOnly(now), D_REL[m[0]])],
     [/下(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(addDays(dateOnly(now), 7 - pyWeekday(now)), WEEKDAY_IDX[m[1]])],
-    [/(?:本|这)?(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(dateOnly(now), (WEEKDAY_IDX[m[1]] - pyWeekday(now) + 7) % 7)],
+    // "本周X/这周X" = 本日历周（周一~周日）的 X，即便已过去（周日读"本周五"=前天）；
+    // 裸"周X"才按"最近的未来"算
+    [/(?:本|这)(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(dateOnly(now), WEEKDAY_IDX[m[1]] - pyWeekday(now))],
+    [/(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(dateOnly(now), (WEEKDAY_IDX[m[1]] - pyWeekday(now) + 7) % 7)],
     [/(\d{1,2})月(\d{1,2})[日号]?/, (m) => {
       const d = new Date(now.getFullYear(), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
       return isNaN(d) ? dateOnly(now) : d;
