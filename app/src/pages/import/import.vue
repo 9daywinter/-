@@ -194,10 +194,10 @@ export default {
                 zipPath: zip,
                 targetPath: out,
                 success: () => this.readTimetableXml(fs, out, name),
-                fail: () => { this.busy = false; uni.showToast({ title: "解压失败：确认是 docx/xlsx", icon: "none" }); },
+                fail: (err) => { this.busy = false; uni.showToast({ title: "解压失败:" + (err && err.errMsg || ""), icon: "none", duration: 4000 }); },
               });
             },
-            fail: () => { this.busy = false; uni.showToast({ title: "读文件失败", icon: "none" }); },
+            fail: (err) => { this.busy = false; uni.showToast({ title: "复制失败:" + (err && err.errMsg || ""), icon: "none", duration: 4000 }); },
           });
         },
       });
