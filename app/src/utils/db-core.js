@@ -567,8 +567,11 @@ function createDdl(body) {
 }
 
 // 群通知长文 → 多条 DDL 候选（v1 /api/ddls/parse 形状：{ddls:[...]}）。
-// 分段策略：换行 → 句号/分号，每段独立跑规则引擎；没时间线索的段丢弃。
+// 分段策略：换行 → 句号/分号，每段独立跑规则引擎。
+// 没有日期线索的段（"请大家诚信考试""预祝好成绩"这类嘱咐/署名）直接丢弃，
+// 速记引擎只兜底"带日期的短截止句"（"实验报告周五前交"）。
 function parseDdlsFromNotice(text) {
+  const DATE_HINT = /周[一二三四五六日天]|星期[一二三四五六日天]|礼拜[一二三四五六日天]|明天|后天|大后天|今天|今晚|明晚|\d{1,2}月\d{1,2}/;
   const segs = String(text || "")
     .split(/\n+/)
     .flatMap((ln) => ln.split(/[。；;]+/))
@@ -577,20 +580,22 @@ function parseDdlsFromNotice(text) {
   const out = [];
   const seen = new Set();
   for (const seg of segs) {
+    if (!DATE_HINT.test(seg)) continue; // 无日期 = 嘱咐/署名段，不产 DDL
     let p = looksLikeNotice(seg) ? parseNotice(seg) : null;
     if (!p || p.timeStatus === "todo") {
-      // 段落不像通知（短句"周五前交实验报告"）→ 速记引擎兜底
       const r = resolveEventTime(seg);
       if (!r || r.title === "临时安排") continue;
       p = { title: r.title, note: "", location: "", startAt: r.startAt, endAt: r.endAt };
     }
     const title = (p.title || "").trim();
-    const due_at = p.startAt.replace("T", " ");
     if (!title || title === "群通知事项") continue;
+    const isExam = /考|测试|测验|四六级|答辩/.test(title + seg);
+    // DDL 是"截止"语义：考试/窗口型取时段末尾（周五18:00-周日23:59 → 截止周日23:59），
+    // 交作业型取开始（"周五24:00前交" → 周五深夜）
+    const due_at = (isExam ? p.endAt : p.startAt).replace("T", " ");
     const key = title + "|" + due_at;
     if (seen.has(key)) continue;
     seen.add(key);
-    const isExam = /考|测试|测验|四六级|答辩/.test(title + seg);
     out.push({
       title: title.slice(0, 30),
       course_name: "",

@@ -21,6 +21,7 @@
       <!-- 工具入口 -->
       <view class="tool-bar">
         <view class="tool-btn" @click="go('/pages/add/add')">➕ 添加日程</view>
+        <view class="tool-btn" @click="go('/pages/voice/voice')">🎤 速记</view>
         <view class="tool-btn" @click="go('/pages/ddl/ddl')">⏰ DDL<template v-if="ddlOpenCount > 0"> {{ ddlOpenCount }}</template></view>
         <view class="tool-btn" @click="go('/pages/profile/profile')">👤 主页</view>
       </view>

@@ -220,7 +220,15 @@
               <text class="del" @click="parseRows.splice(i, 1)">✕</text>
             </view>
             <view class="row-mid">
-              <text class="due-tag">截止 {{ dueText(r.due) }}<text v-if="r.kind === 'exam'" class="exam-tag"> 📝考试</text></text>
+              <view class="due-edit">
+                <picker mode="date" :value="r.due.slice(0, 10)" @change="(e) => (r.due = e.detail.value + 'T' + r.due.slice(11, 16) + ':00')">
+                  <text class="due-tag">{{ r.due.slice(5, 10).replace("-", "/") }} ▾</text>
+                </picker>
+                <picker mode="time" :value="r.due.slice(11, 16)" @change="(e) => (r.due = r.due.slice(0, 10) + 'T' + e.detail.value + ':00')">
+                  <text class="due-tag">{{ r.due.slice(11, 16) }} ▾</text>
+                </picker>
+                <text v-if="r.kind === 'exam'" class="exam-tag">📝考试</text>
+              </view>
               <view class="w-chips mini">
                 <text class="w-mini" :class="{ on: r.weight === 1 }" @click="r.kind !== 'exam' && (r.weight = 1)">低</text>
                 <text class="w-mini" :class="{ on: r.weight === 2 }" @click="r.kind !== 'exam' && (r.weight = 2)">中</text>
@@ -1224,6 +1232,8 @@ export default {
 .del { color: #b0b5c1; padding: 4rpx 8rpx; }
 .row-mid { display: flex; align-items: center; justify-content: space-between; }
 .due-tag { font-size: 24rpx; color: #d97706; }
+/* 抽取结果的时间可改：日期+时间两个 picker 并排 */
+.due-edit { display: flex; align-items: center; gap: 8rpx; }
 .loc-input { background: #fff; border-radius: 10rpx; padding: 12rpx 16rpx; font-size: 24rpx; }
 .save-row { margin-top: 12rpx; }
 

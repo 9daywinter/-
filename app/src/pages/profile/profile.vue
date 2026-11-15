@@ -45,9 +45,9 @@
         <text class="val">{{ termText }}</text>
         <text class="arrow">›</text>
       </view>
-      <view class="row" @click="showTtImport = true">
-        <text class="label">从文件导入课表</text>
-        <text class="val">换学期用：粘贴电脑端脚本生成的 JSON，只换课表</text>
+      <view class="row" @click="go('/pages/import/import')">
+        <text class="label">导入课表</text>
+        <text class="val">粘贴 PC 脚本 JSON → 勾选预览 → 批量入库</text>
         <text class="arrow">›</text>
       </view>
       <view class="row" @click="resetCourses">
@@ -225,6 +225,9 @@ export default {
     goEditEvent(id) {
       // 跳到添加日程页，自动载入这条日程进编辑（add.vue 读 ?edit=）
       uni.navigateTo({ url: "/pages/add/add?edit=" + id });
+    },
+    go(url) {
+      uni.navigateTo({ url });
     },
     // ---- 备份与恢复（走统一数据通道：单机版=本地，小程序云端=云文档） ----
     async exportBackup() {
