@@ -172,17 +172,17 @@
         </view>
         <view class="form-row">
           <text class="label">周几</text>
-          <picker :range="dayRange" :value="form.day_of_week - 1" @change="(e) => (form.day_of_week = e.detail.value + 1)">
+          <picker :range="dayRange" :value="form.day_of_week - 1" @change="(e) => (form.day_of_week = Number(e.detail.value) + 1)">
             <view class="picker-val">{{ dayRange[form.day_of_week - 1] }} ▾</view>
           </picker>
         </view>
         <view class="form-row">
           <text class="label">节次</text>
-          <picker :range="slotRange" :value="form.start_slot - 1" @change="(e) => (form.start_slot = e.detail.value + 1)">
+          <picker :range="slotRange" :value="form.start_slot - 1" @change="(e) => (form.start_slot = Number(e.detail.value) + 1)">
             <view class="picker-val">{{ slotRange[form.start_slot - 1] }}</view>
           </picker>
           <text class="label">至</text>
-          <picker :range="slotRange" :value="form.end_slot - 1" @change="(e) => (form.end_slot = e.detail.value + 1)">
+          <picker :range="slotRange" :value="form.end_slot - 1" @change="(e) => (form.end_slot = Number(e.detail.value) + 1)">
             <view class="picker-val">{{ slotRange[form.end_slot - 1] }} ▾</view>
           </picker>
         </view>
