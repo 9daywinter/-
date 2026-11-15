@@ -7,11 +7,9 @@
       </view>
       <view class="row">
         <text class="label">第一周周一</text>
-        <view class="val pick-wrap">
-          <text>{{ form.start_monday }}</text>
-          <text class="caret">▾</text>
-          <picker class="cover" mode="date" :value="form.start_monday" @change="(e) => (form.start_monday = e.detail.value)"></picker>
-        </view>
+        <picker mode="date" :value="form.start_monday" @change="(e) => (form.start_monday = e.detail.value)">
+          <view class="val">{{ form.start_monday }} ▾</view>
+        </picker>
       </view>
       <view class="row">
         <text class="label">总周数</text>

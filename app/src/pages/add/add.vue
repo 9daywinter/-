@@ -20,29 +20,21 @@
       </view>
       <view class="form-row">
         <text class="label">开始</text>
-        <view class="val pick-val">
-          <text>{{ shortDate(draft.sd) }}</text>
-          <text class="caret">▾</text>
-          <picker class="cover" mode="date" :value="draft.sd" @change="(e) => (draft.sd = e.detail.value)"></picker>
-        </view>
-        <view class="val pick-val">
-          <text>{{ draft.st }}</text>
-          <text class="caret">▾</text>
-          <picker class="cover" mode="time" :value="draft.st" @change="(e) => (draft.st = e.detail.value)"></picker>
-        </view>
+        <picker mode="date" :value="draft.sd" @change="(e) => (draft.sd = e.detail.value)">
+          <view class="val">{{ shortDate(draft.sd) }} ▾</view>
+        </picker>
+        <picker mode="time" :value="draft.st" @change="(e) => (draft.st = e.detail.value)">
+          <view class="val">{{ draft.st }} ▾</view>
+        </picker>
       </view>
       <view class="form-row">
         <text class="label">结束</text>
-        <view v-if="draft.repeat === 'none'" class="val pick-val">
-          <text>{{ shortDate(draft.ed) }}</text>
-          <text class="caret">▾</text>
-          <picker class="cover" mode="date" :value="draft.ed" @change="(e) => (draft.ed = e.detail.value)"></picker>
-        </view>
-        <view class="val pick-val">
-          <text>{{ draft.et }}</text>
-          <text class="caret">▾</text>
-          <picker class="cover" mode="time" :value="draft.et" @change="(e) => (draft.et = e.detail.value)"></picker>
-        </view>
+        <picker v-if="draft.repeat === 'none'" mode="date" :value="draft.ed" @change="(e) => (draft.ed = e.detail.value)">
+          <view class="val">{{ shortDate(draft.ed) }} ▾</view>
+        </picker>
+        <picker mode="time" :value="draft.et" @change="(e) => (draft.et = e.detail.value)">
+          <view class="val">{{ draft.et }} ▾</view>
+        </picker>
       </view>
       <view v-if="!editingId" class="form-row">
         <text class="label">重复</text>
@@ -64,11 +56,9 @@
       </view>
       <view v-if="!editingId && draft.repeat !== 'none'" class="form-row">
         <text class="label">重复到</text>
-        <view class="val pick-val">
-          <text>{{ shortDate(draft.red) }}</text>
-          <text class="caret">▾</text>
-          <picker class="cover" mode="date" :value="draft.red" @change="(e) => (draft.red = e.detail.value)"></picker>
-        </view>
+        <picker mode="date" :value="draft.red" @change="(e) => (draft.red = e.detail.value)">
+          <view class="val">{{ shortDate(draft.red) }} ▾</view>
+        </picker>
       </view>
       <view v-if="clash" class="clash-hint">
         ⚠️ 与{{ clashText }}时间重叠<text class="clash-sub">（可保存，冲突会列在主页供改/删）</text>

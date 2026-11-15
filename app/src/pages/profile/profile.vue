@@ -226,21 +226,25 @@ export default {
       // 跳到添加日程页，自动载入这条日程进编辑（add.vue 读 ?edit=）
       uni.navigateTo({ url: "/pages/add/add?edit=" + id });
     },
-    // ---- 备份与恢复（v2：数据全在本机） ----
-    exportBackup() {
-      const json = exportAll();
-      uni.setClipboardData({
-        data: json,
-        success: () => {
-          uni.showModal({
-            title: "已复制到剪贴板",
-            content: `备份共 ${json.length} 字符。打开备忘录/微信文件传输助手粘贴保存，换机或重装时用「导入备份」恢复。`,
-            showCancel: false,
-          });
-        },
-      });
+    // ---- 备份与恢复（走统一数据通道：单机版=本地，小程序云端=云文档） ----
+    async exportBackup() {
+      try {
+        const json = await api.request("GET", "/api/backup");
+        uni.setClipboardData({
+          data: json,
+          success: () => {
+            uni.showModal({
+              title: "已复制到剪贴板",
+              content: `备份共 ${json.length} 字符。打开备忘录/微信文件传输助手粘贴保存，换机或重装时用「导入备份」恢复。`,
+              showCancel: false,
+            });
+          },
+        });
+      } catch (e) {
+        uni.showToast({ title: e.message, icon: "none" });
+      }
     },
-    doImport() {
+    async doImport() {
       const text = (this.importText || "").trim();
       if (!text) {
         uni.showToast({ title: "先粘贴备份内容", icon: "none" });
@@ -248,7 +252,7 @@ export default {
       }
       let counts;
       try {
-        counts = importAll(text);
+        counts = await api.request("POST", "/api/backup", { json: text });
       } catch (e) {
         uni.showToast({ title: e.message, icon: "none" });
         return;
@@ -259,7 +263,7 @@ export default {
       setTimeout(() => uni.reLaunch({ url: "/pages/index/index" }), 800);
     },
     // 换学期：只替换课程（教务文件 → PC 脚本 → 粘贴）
-    doImportTt() {
+    async doImportTt() {
       const text = (this.ttText || "").trim();
       if (!text) {
         uni.showToast({ title: "先粘贴课表 JSON", icon: "none" });
@@ -267,7 +271,7 @@ export default {
       }
       let n;
       try {
-        n = importTimetable(text);
+        n = await api.request("POST", "/api/timetable/import", { json: text });
       } catch (e) {
         uni.showToast({ title: e.message, icon: "none" });
         return;

@@ -29,6 +29,24 @@
 			"style": {
 				"navigationBarTitleText": "DDL 倒计时"
 			}
+		},
+		{
+			"path": "pages/voice/voice",
+			"style": {
+				"navigationBarTitleText": "速记"
+			}
+		},
+		{
+			"path": "pages/import/import",
+			"style": {
+				"navigationBarTitleText": "导入课表"
+			}
+		},
+		{
+			"path": "pages/group/group",
+			"style": {
+				"navigationBarTitleText": "拼时间"
+			}
 		}
 	],
 	"globalStyle": {

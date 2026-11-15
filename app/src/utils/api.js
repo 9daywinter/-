@@ -14,7 +14,19 @@ export function getUser() {
 }
 
 export function request(method, path, data) {
+  // #ifdef MP-WEIXIN
+  // 小程序线：走云函数（cloudfunctions/api，同一套 db-core 逻辑 + 云端 KV）
+  return uni.cloud
+    .callFunction({ name: "api", data: { method, path, body: data || {} } })
+    .then((r) => {
+      const res = r && r.result;
+      if (!res || !res.ok) throw new Error((res && res.error) || "云函数调用失败");
+      return res.data;
+    });
+  // #endif
+  // #ifndef MP-WEIXIN
   return localRequest(method, path, data);
+  // #endif
 }
 
 export const api = {
