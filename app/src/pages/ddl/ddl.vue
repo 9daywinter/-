@@ -192,10 +192,12 @@
       </view>
     </view>
 
-    <!-- 粘贴通知抽取 -->
+    <!-- 粘贴通知抽取（内容区用 scroll-view：小程序普通 view 的 overflow 不滚，
+         底部的关联课程输入框和保存按钮会被压出屏幕够不着） -->
     <view v-if="showPaste" class="sheet-mask" @click="showPaste = false">
       <view class="sheet tall" @click.stop>
         <view class="sheet-title">📋 粘贴群通知抽 DDL</view>
+        <scroll-view scroll-y class="tall-scroll">
         <textarea
           v-model="pasteText"
           class="ta"
@@ -241,6 +243,7 @@
             <button class="btn-primary" :disabled="pasteBusy" @click="saveParse">保存所选（{{ parseCheckedCount }} 个）</button>
           </view>
         </block>
+        </scroll-view>
       </view>
     </view>
     <!-- 档位说明 -->
@@ -1132,7 +1135,8 @@ export default {
   padding: 32rpx;
   box-sizing: border-box;
 }
-.sheet.tall { overflow-y: auto; max-height: 88vh; }
+.sheet.tall { display: flex; flex-direction: column; max-height: 92vh; }
+.tall-scroll { flex: 1; min-height: 0; }
 .sheet-title { font-size: 32rpx; font-weight: 600; margin-bottom: 24rpx; }
 .form-row {
   display: flex;
