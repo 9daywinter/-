@@ -9,7 +9,7 @@ const db = cloud.database();
 const COL = "userData";
 
 // db-core.cjs.js 由 scripts/sync-cf.mjs 从 src/utils/db-core.js + slots.js 生成
-const { bindStorage, localRequest } = require("./db-core.cjs");
+const { bindStorage, localRequest, SLOT_TIMES } = require("./db-core.cjs");
 const { handleGroupsRoute } = require("./groups");
 
 exports.main = async (event) => {
@@ -55,7 +55,16 @@ exports.main = async (event) => {
       const out = await handleGroupsRoute(method, path, body, {
         db, openid: OPENID, loadUserData, SLOT_TIMES,
       });
-      if (out !== null) return { ok: true, data: out };
+      if (out !== null) {
+        // 定档全员确认 → 写回各成员个人日程（batch.written 防重复写：
+        // 改口撤销后再全员确认不会重复生成事件）
+        if (out.settled && /\/api\/groups\/[^/]+\/respond$/.test(path)) {
+          try {
+            await writeSettledToCalendars(db, path.split("/")[3], String(body.batch || ""));
+          } catch (e) { /* 写回失败不影响确认结果 */ }
+        }
+        return { ok: true, data: out };
+      }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
@@ -81,3 +90,48 @@ exports.main = async (event) => {
 
   return ok ? { ok: true, data: out } : { ok: false, error: out };
 };
+
+// 定档写回：给批次的每个成员日程里加一条 👥 事件（云函数有管理员权限，
+// 可直写他人的 userData 文档；分钟→HH:MM，1440 封顶 23:59）
+async function writeSettledToCalendars(db, code, batchKey) {
+  const g = await db.collection("groups").where({ code }).limit(1).get();
+  const gdoc = g.data && g.data[0];
+  const b = gdoc && gdoc.settle && gdoc.settle.batches && gdoc.settle.batches[batchKey];
+  if (!b || b.written) return;
+  const hhmm = (min) => {
+    const m = Math.min(min, 1439);
+    return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
+  };
+  const startAt = `${b.day} ${hhmm(b.start_min)}`;
+  const endAt = `${b.day} ${hhmm(b.end_min)}`;
+  const col = db.collection(COL);
+  for (const openid of b.members || []) {
+    const f = await col.where({ _openid: openid }).limit(1).get();
+    const ud = f.data && f.data[0];
+    if (!ud) continue; // 没用过 App 的成员跳过
+    const store = { ...(ud.store || {}) };
+    const events = store.db_events || [];
+    const seq = (store.db_seq || 0) + 1;
+    events.push({
+      id: seq,
+      title: b.title,
+      note: "拼时间定档",
+      location: "",
+      icon: "👥",
+      color_idx: 0,
+      time_status: "exact",
+      type: "group",
+      source: "group",
+      status: "ok",
+      start_at: startAt,
+      end_at: endAt,
+      series_id: null,
+    });
+    store.db_events = events;
+    store.db_seq = seq;
+    await col.doc(ud._id).update({ data: { store, updated_at: Date.now() } });
+  }
+  // 批次标记已写（整 settle 字段写回，不依赖 SDK 的点路径更新语义）
+  gdoc.settle.batches[batchKey].written = true;
+  await db.collection("groups").doc(gdoc._id).update({ data: { settle: gdoc.settle } });
+}

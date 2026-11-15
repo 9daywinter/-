@@ -1988,4 +1988,4 @@ return { bindStorage, exportAll, importAll, importTimetable, localRequest };
 })();
 const { bindStorage, exportAll, importAll, importTimetable, localRequest } = __core;
 
-module.exports = { bindStorage, localRequest, exportAll, importAll, importTimetable };
+module.exports = { bindStorage, localRequest, exportAll, importAll, importTimetable, SLOT_TIMES };
