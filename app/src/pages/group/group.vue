@@ -83,6 +83,8 @@
           <view class="wk-seg">
             <text :class="{ on: weekOff === 0 }" @click="setWeek(0)">本周</text>
             <text :class="{ on: weekOff === 1 }" @click="setWeek(1)">下周</text>
+            <text :class="{ on: weekOff === 2 }" @click="setWeek(2)">第3周</text>
+            <text :class="{ on: weekOff === 3 }" @click="setWeek(3)">第4周</text>
           </view>
         </view>
         <view class="mx">
@@ -139,7 +141,7 @@
 
       <!-- FR-44 定档 -->
       <view class="card">
-        <view class="card-title">📌 组长定档</view>
+        <view class="card-title">📌 共同定档</view>
         <input class="inp" v-model="settleTitle" placeholder="活动名，如：组会 / 打球" />
         <view class="pick-row">
           <picker :range="dayOpts" :value="sDayIdx" @change="sDayIdx = $event.detail.value">
@@ -174,10 +176,10 @@ function pad(n) {
 
 export default {
   data() {
-    // 未来 14 天选项
+    // 未来 28 天选项
     const days = [];
     const dayVals = [];
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 28; i++) {
       const d = new Date(Date.now() + i * 86400000);
       days.push(fmtD(d));
       dayVals.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
