@@ -178,25 +178,36 @@ export default {
             return;
           }
           this.busy = true;
+          // 小程序 FileSystemManager.unzip 有兼容 bug（真机也 parameter error），
+          // 改走云端解压：文件读 base64 → 云函数 adm-zip → XML 回来
           const fs = uni.getFileSystemManager();
-          const zip = `${wx.env.USER_DATA_PATH}/tt.zip`;
-          const out = `${wx.env.USER_DATA_PATH}/ttout`;
-          // 清理残留（目录或文件都可能）
-          try { fs.unlinkSync(zip); } catch (e) { /* 不存在 */ }
-          try { fs.rmdirSync(out, true); } catch (e) { /* 不存在 */ }
-          try { fs.mkdirSync(out); } catch (e) { /* 已存在 */ }
-          fs.copyFile({
-            srcPath: f.path,
-            destPath: zip,
-            success: () => {
-              fs.unzip({
-                zipPath: zip,
-                targetPath: out,
-                success: () => this.readTimetableXml(fs, out, name),
-                fail: (err) => { this.busy = false; uni.showToast({ title: "解压失败:" + (err && err.errMsg || ""), icon: "none", duration: 4000 }); },
-              });
+          fs.readFile({
+            path: f.path,
+            encoding: "base64",
+            success: async (rr) => {
+              try {
+                const isDocx = /\.docx$/i.test(name);
+                const paths = isDocx
+                  ? ["word/document.xml"]
+                  : ["xl/worksheets/sheet1.xml", "xl/worksheets/sheet2.xml", "xl/sharedStrings.xml"];
+                const res = await uni.cloud.callFunction({
+                  name: "api",
+                  data: { method: "POST", path: "/api/unzip-file", body: { file_base64: rr.data, paths } },
+                });
+                const r = res && res.result;
+                if (!r || !r.ok) throw new Error((r && r.error) || "云端解压失败");
+                this.mpKind = isDocx ? "docx" : "xlsx";
+                this.mpXml = isDocx ? r.data.files["word/document.xml"] : (r.data.files["xl/worksheets/sheet1.xml"] || r.data.files["xl/worksheets/sheet2.xml"]);
+                this.mpStrings = isDocx ? undefined : r.data.files["xl/sharedStrings.xml"] || "";
+                this.fileName = name;
+                this.busy = false;
+                uni.showToast({ title: "文件就绪，点「解析文件」", icon: "none" });
+              } catch (e) {
+                this.busy = false;
+                uni.showToast({ title: e.message, icon: "none", duration: 4000 });
+              }
             },
-            fail: (err) => { this.busy = false; uni.showToast({ title: "复制失败:" + (err && err.errMsg || ""), icon: "none", duration: 4000 }); },
+            fail: () => { this.busy = false; uni.showToast({ title: "读文件失败", icon: "none" }); },
           });
         },
       });

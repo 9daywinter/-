@@ -4,8 +4,9 @@
 // uni storage 的键完全一致，跑的是同一份 db-core 逻辑（sync-cf.mjs 同步生成）。
 // 个人规模下全量读写一个 <100KB 的 JSON 文档，性能与一致性都够用。
 const cloud = require("wx-server-sdk");
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV }); // 跟随函数部署的环境
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const AdmZip = require("adm-zip");
 const COL = "userData";
 
 // db-core.cjs.js 由 scripts/sync-cf.mjs 从 src/utils/db-core.js + slots.js 生成
@@ -34,6 +35,25 @@ exports.main = async (event) => {
     get: (k) => store[k],
     set: (k, v) => { store[k] = v; },
   });
+
+  // 文件解压：小程序端 FileSystemManager.unzip 有兼容性 bug（真机也报
+  // parameter error），云端用 adm-zip 代替。入参 base64，出参 XML 字符串
+  if (path === "/api/unzip-file") {
+    try {
+      const buf = Buffer.from(body.file_base64 || "", "base64");
+      if (!buf.length) throw new Error("没收到文件内容");
+      const zip = new AdmZip(buf);
+      const out = {};
+      for (const p of body.paths || []) {
+        const entry = zip.getEntry(p);
+        if (entry) out[p] = zip.readAsText(entry);
+      }
+      if (!Object.keys(out).length) throw new Error("zip 里没找到 " + (body.paths || []).join(", "));
+      return { ok: true, data: { files: out } };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
 
   // 组队（拼时间）：跨用户共享数据，走 groups 集合，不进个人 KV
   if (path.startsWith("/api/groups")) {
