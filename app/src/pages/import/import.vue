@@ -154,6 +154,54 @@ export default {
       document.body.appendChild(input); // 必须先进 DOM 再 click
       input.click();
       // #endif
+      // #ifdef MP-WEIXIN
+      // 小程序：从微信聊天里选文件（先把教务文件发给"文件传输助手"），
+      // 本地解压抽 XML，解析走规则引擎（parse-timetable-file 本地直跑）
+      wx.chooseMessageFile({
+        count: 1,
+        type: "file",
+        extension: ["docx", "xlsx", "json"],
+        success: (r) => {
+          const f = r.tempFiles && r.tempFiles[0];
+          if (!f) return;
+          const name = f.name || "课表文件";
+          if (/\.json$/i.test(name)) {
+            // PC 脚本产物：直接走文本通道
+            uni.getFileSystemManager().readFile({
+              path: f.path,
+              encoding: "utf8",
+              success: (rr) => {
+                this.pasted = String(rr.data || "");
+                uni.showToast({ title: "已读入，点「解析文本」", icon: "none" });
+              },
+            });
+            return;
+          }
+          this.busy = true;
+          const fs = uni.getFileSystemManager();
+          const dir = `${wx.env.USER_DATA_PATH}/tt`;
+          const zip = `${dir}.zip`;
+          try { fs.mkdirSync(dir, true); } catch (e) { /* 已存在 */ }
+          fs.copyFile({
+            srcPath: f.path,
+            destPath: zip,
+            success: () => {
+              // unzip 只接受目录
+              const out = `${wx.env.USER_DATA_PATH}/ttout`;
+              try { fs.rmdirSync(out, true); } catch (e) { /* 不存在 */ }
+              fs.mkdirSync(out, true);
+              fs.unzip({
+                zipPath: zip,
+                targetPath: out,
+                success: () => this.readTimetableXml(fs, out, name),
+                fail: () => { this.busy = false; uni.showToast({ title: "解压失败：确认是 docx/xlsx", icon: "none" }); },
+              });
+            },
+            fail: () => { this.busy = false; uni.showToast({ title: "读文件失败", icon: "none" }); },
+          });
+        },
+      });
+      // #endif
       // #ifdef APP-PLUS
       uni.chooseFile({
         count: 1,
@@ -176,7 +224,53 @@ export default {
       });
       // #endif
     },
+    // #ifdef MP-WEIXIN
+    // 从解压目录里抽出 docx/xlsx 的 XML，存起来等 parseFile 用
+    readTimetableXml(fs, out, name) {
+      const read = (p) => {
+        try { return fs.readFileSync(`${out}/${p}`, "utf8"); } catch (e) { return ""; }
+      };
+      if (/\.docx$/i.test(name)) {
+        const xml = read("word/document.xml");
+        if (!xml) { this.busy = false; uni.showToast({ title: "不是有效的 docx", icon: "none" }); return; }
+        this.mpKind = "docx";
+        this.mpXml = xml;
+      } else {
+        let sheet = read("xl/worksheets/sheet1.xml") || read("xl/worksheets/sheet2.xml");
+        const strings = read("xl/sharedStrings.xml");
+        if (!sheet) { this.busy = false; uni.showToast({ title: "不是有效的 xlsx", icon: "none" }); return; }
+        this.mpKind = "xlsx";
+        this.mpXml = sheet;
+        this.mpStrings = strings;
+      }
+      this.fileName = name;
+      this.busy = false;
+      uni.showToast({ title: "文件就绪，点「解析文件」", icon: "none" });
+    },
+    // #endif
     async parseFile() {
+      // #ifdef MP-WEIXIN
+      if (!this.mpKind) {
+        uni.showToast({ title: "先选一个文件", icon: "none" });
+        return;
+      }
+      this.busy = true;
+      try {
+        const res = await api.post("/api/ai/parse-timetable-file", {
+          kind: this.mpKind,
+          xml: this.mpXml,
+          sheet: this.mpKind === "xlsx" ? this.mpXml : undefined,
+          strings: this.mpKind === "xlsx" ? this.mpStrings : undefined,
+        });
+        this.applyRows(res);
+      } catch (e) {
+        uni.showModal({ title: "解析失败", content: e.message, showCancel: false });
+      } finally {
+        this.busy = false;
+      }
+      return;
+      // #endif
+      // #ifndef MP-WEIXIN
       if (!this.fileBase64) {
         uni.showToast({ title: "先选一个文件", icon: "none" });
         return;
@@ -192,6 +286,7 @@ export default {
       } finally {
         this.busy = false;
       }
+      // #endif
     },
     chooseImage() {
       uni.chooseImage({

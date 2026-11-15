@@ -15,7 +15,7 @@ export function getUser() {
 
 // 解析类端点是纯函数（不碰存储），一律本地跑：省云函数往返，
 // 规则引擎调优也不用重新部署云函数
-const LOCAL_PARSE_PATHS = ["/api/ddls/parse", "/api/ai/parse-voice", "/api/ai/parse-timetable-text"];
+const LOCAL_PARSE_PATHS = ["/api/ddls/parse", "/api/ai/parse-voice", "/api/ai/parse-timetable-text", "/api/ai/parse-timetable-file"];
 
 export function request(method, path, data) {
   if (LOCAL_PARSE_PATHS.includes(path)) return localRequest(method, path, data);

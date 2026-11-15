@@ -7,6 +7,7 @@
 import { SLOT_TIMES } from "./slots";
 import { looksLikeNotice, parseNotice, resolveEventTime } from "./notice";
 import { handleSuggestionRoute } from "./suggest";
+import { parseDocxXml, parseXlsxParts } from "./timetableFile";
 
 const K = {
   term: "db_term",
@@ -827,8 +828,22 @@ function route(method, path, body) {
     }
     return { by: "rule", courses: data.courses };
   }
-  if (method === "POST" && (path === "/api/ai/voice-upload" || path === "/api/ai/parse-timetable" || path === "/api/ai/parse-timetable-file")) {
-    throw new Error("语音转文字/截图/文件解析走微信插件与 AI 能力，v1.1 开放；速记可用打字模式");
+  if (method === "POST" && (path === "/api/ai/voice-upload" || path === "/api/ai/parse-timetable")) {
+    throw new Error("语音转文字/截图解析走微信插件与 AI 能力，v1.1 开放；速记可用打字模式");
+  }
+  if (method === "POST" && path === "/api/ai/parse-timetable-file") {
+    // 文件课表：调用方（小程序）已解压出 XML，这里规则解析（import_timetable.py 移植）
+    if (body.kind === "docx") {
+      const r = parseDocxXml(String(body.xml || ""));
+      if (!r.courses.length) throw new Error("没解析出课程：确认是教务导出的 docx 课表");
+      return { by: "rule", courses: r.courses };
+    }
+    if (body.kind === "xlsx") {
+      const r = parseXlsxParts(String(body.sheet || ""), String(body.strings || ""));
+      if (!r.courses.length) throw new Error("没解析出课程：确认是教务导出的 xlsx 课表");
+      return { by: "rule", courses: r.courses };
+    }
+    throw new Error("kind 只能是 docx 或 xlsx");
   }
   // ---- 建议引擎（批奏折，v1 规则移植：权重×紧迫度×空闲段） ----
   const sug = handleSuggestionRoute(method, path, body, { load, save, now: new Date() });
