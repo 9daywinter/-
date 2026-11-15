@@ -72,7 +72,7 @@
             <text class="grp-name">{{ fmtDay(s.date) }} {{ fmtMin(s.start_min) }}-{{ fmtMin(s.end_min) }}</text>
             <text class="grp-sub">{{ s.members.map((m) => m.nickname).join(" · ") }} 都有空</text>
           </view>
-          <text v-if="group.is_creator" class="settle-btn" @click="quickSettle(s)">定档</text>
+          <text class="settle-btn" @click="quickSettle(s)">定档</text>
         </view>
       </view>
 
@@ -138,7 +138,7 @@
       </view>
 
       <!-- FR-44 定档 -->
-      <view class="card" v-if="group.is_creator">
+      <view class="card">
         <view class="card-title">📌 组长定档</view>
         <input class="inp" v-model="settleTitle" placeholder="活动名，如：组会 / 打球" />
         <view class="pick-row">

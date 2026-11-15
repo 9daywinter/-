@@ -445,9 +445,9 @@ async function checkTime(g, openid, body, ud, SLOT_TIMES) {
 }
 
 // POST /{code}/settle {title, day, start_min, end_min} → {ok, batch, count}（FR-44）
-// 组长定档：批次收进组文档，全员各有一条待确认记录（= v1 给每人写 pending 事件）
+// 任何组员都可发起定档（发起人自动算一票"同意"），全员确认后才生效
 async function settle(db, g, openid, body) {
-  if (g.owner !== openid) throw new Error("只有组长能定档");
+  mustMember(g, openid);
   const title = String(body.title || "").trim().slice(0, 64);
   const day = String(body.day || "").slice(0, 10);
   const lo = Number(body.start_min);
@@ -467,7 +467,8 @@ async function settle(db, g, openid, body) {
     start_min: lo,
     end_min: hi,
     members: members.map((m) => m.openid), // 定档时成员快照（此后入组者无确认义务）
-    responses: {},
+    created_by: openid,
+    responses: { [openid]: "ok" }, // 发起人自动算一票同意
     settled: false,
     created_at: fmtDT(new Date()),
   };
