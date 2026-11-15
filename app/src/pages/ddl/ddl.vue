@@ -920,7 +920,7 @@ export default {
 <style scoped>
 .page {
   padding: 24rpx;
-  padding-bottom: 80rpx;
+  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
   max-width: 950px;
   margin: 0 auto;
   box-sizing: border-box;

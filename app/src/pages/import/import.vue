@@ -320,7 +320,7 @@ export default {
 <style scoped>
 .page {
   padding: 24rpx;
-  padding-bottom: 60rpx;
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
   max-width: 950px; /* 电脑端居中限宽 */
   margin: 0 auto;
   box-sizing: border-box;

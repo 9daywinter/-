@@ -462,6 +462,7 @@ export default {
   min-height: 100vh;
   background: #f5f6fa;
   padding: 24rpx;
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 .card {

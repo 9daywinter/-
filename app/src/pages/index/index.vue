@@ -996,7 +996,7 @@ export default {
 <style scoped>
 .page {
   padding: 16rpx;
-  padding-bottom: 140rpx;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
 }
 .empty {
   margin-top: 200rpx;
