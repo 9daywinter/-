@@ -12,6 +12,7 @@
         <text class="num green">{{ tierCount.green }}</text><text class="lbl">从容</text>
       </view>
       <view class="hint-btn" @click="showTierHelp = true">?</view>
+      <view class="add-btn paste-btn" @click="openPaste">📋 粘贴</view>
       <view class="add-btn" @click="openAdd">＋ 加 DDL</view>
     </view>
     <!-- 截止前一天提醒：还没完成的任务 DDL -->
@@ -162,6 +163,31 @@
       </view>
     </view>
 
+    <!-- 粘贴群通知：本地规则解析（长文走通知引擎，短句降级速记引擎），可存日程或 DDL -->
+    <view v-if="showPaste" class="sheet-mask" @click="showPaste = false">
+      <view class="sheet" @click.stop>
+        <view class="sheet-title">📋 粘贴群通知</view>
+        <textarea
+          v-model="pasteText"
+          class="paste-area"
+          placeholder="把班级群/课程群的通知原文粘进来，自动抽标题、时间、地点"
+          :maxlength="2000"
+        ></textarea>
+        <button class="btn-primary" @click="doParse">解析</button>
+        <view v-if="parsed" class="parse-card">
+          <view class="parse-title">{{ parsed.title }}</view>
+          <view class="parse-row">🕐 {{ parseTimeText }}</view>
+          <view v-if="parsed.location" class="parse-row">📍 {{ parsed.location }}</view>
+          <view v-if="parsed.note" class="parse-row">📝 {{ parsed.note }}</view>
+          <view class="parse-status">{{ statusText }}</view>
+          <view class="sheet-btns">
+            <button class="btn-plain" @click="saveAsEvent">存为日程</button>
+            <button class="btn-primary" @click="saveAsDdl">存为 DDL</button>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 档位说明 -->
     <view v-if="showTierHelp" class="help-mask" @click="showTierHelp = false">
       <view class="help-sheet" @click.stop>
@@ -190,6 +216,7 @@
 
 <script>
 import { api } from "../../utils/api";
+import { looksLikeNotice, parseNotice, resolveEventTime } from "../../utils/notice";
 
 const DAY = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -204,6 +231,10 @@ export default {
       form: { id: null, title: "", course_name: "", d: "", t: "23:59", weight: 2, kind: "task", location: "", note: "", examEnd: "11:00" },
       // 档位说明
       showTierHelp: false,
+      // 粘贴群通知解析
+      showPaste: false,
+      pasteText: "",
+      parsed: null,
       // 完成仪式感
       celebrate: null,
     };
@@ -235,6 +266,26 @@ export default {
     remindText() {
       return this.remindList.map((x) => x.title).join("、");
     },
+    // 粘贴解析结果的时间一行字（同一天只写一次日期）
+    parseTimeText() {
+      const p = this.parsed;
+      if (!p) return "";
+      const sd = p.startAt.slice(0, 10);
+      const ed = p.endAt.slice(0, 10);
+      const d1 = sd.slice(5).replace("-", "/");
+      const d2 = ed.slice(5).replace("-", "/");
+      return sd === ed
+        ? `${d1} ${p.startAt.slice(11, 16)}~${p.endAt.slice(11, 16)}`
+        : `${d1} ${p.startAt.slice(11, 16)} ~ ${d2} ${p.endAt.slice(11, 16)}`;
+    },
+    statusText() {
+      return {
+        exact: "✅ 时间明确",
+        start_only: "▶️ 只有开始时间，结束是估的",
+        fuzzy: "⏰ 时间大概",
+        todo: "❓ 没读到时间，占位今天 9 点",
+      }[(this.parsed && this.parsed.timeStatus) || ""] || "";
+    },
   },
   onShow() {
     this.load();
@@ -262,6 +313,66 @@ export default {
     setKind(k) {
       this.form.kind = k;
       if (k === "exam") this.form.weight = 3; // 考试固定最高重要度
+    },
+    // ---- 粘贴群通知 ----
+    openPaste() {
+      this.showPaste = true;
+    },
+    doParse() {
+      const t = (this.pasteText || "").trim();
+      if (!t) {
+        uni.showToast({ title: "先粘点文字进来", icon: "none" });
+        return;
+      }
+      let p = null;
+      if (looksLikeNotice(t)) p = parseNotice(t);
+      if (!p) {
+        // 短句/解析不出 → 速记引擎兜底
+        const r = resolveEventTime(t);
+        p = { title: r.title, note: "", location: "", startAt: r.startAt, endAt: r.endAt, timeStatus: "exact" };
+      }
+      this.parsed = p;
+    },
+    async saveAsEvent() {
+      const p = this.parsed;
+      try {
+        await api.post("/api/events", {
+          title: p.title,
+          note: p.note || "",
+          location: p.location || "",
+          icon: "",
+          time_status: p.timeStatus,
+          color_idx: 0,
+          start_at: p.startAt.replace("T", " "),
+          end_at: p.endAt.replace("T", " "),
+          type: "temp",
+          source: "notice",
+        });
+        uni.showToast({ title: "已存为日程 ✓", icon: "success" });
+        this.showPaste = false;
+        this.parsed = null;
+        this.pasteText = "";
+      } catch (e) {
+        uni.showToast({ title: e.message, icon: "none" });
+      }
+    },
+    saveAsDdl() {
+      const p = this.parsed;
+      const isExam = /考|测试|测验|四六级/.test(p.title || "");
+      this.form = {
+        id: null,
+        title: p.title,
+        course_name: "",
+        d: p.startAt.slice(0, 10),
+        t: p.startAt.slice(11, 16),
+        weight: isExam ? 3 : 2,
+        kind: isExam ? "exam" : "task",
+        location: p.location || "",
+        note: p.note || "",
+        examEnd: p.endAt.slice(11, 16) === "00:00" ? "11:00" : p.endAt.slice(11, 16),
+      };
+      this.showPaste = false;
+      this.showForm = true; // 预填好，人工核对一眼再点添加
     },
     openAdd() {
       const now = new Date();
@@ -510,6 +621,30 @@ export default {
 .pick-wrap .caret { color: #9ca3af; margin-left: 8rpx; }
 .cover { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; }
 .sheet-btns { display: flex; gap: 16rpx; margin-top: 32rpx; }
+/* 粘贴群通知 */
+.paste-btn { margin-right: 12rpx; }
+.paste-area {
+  width: 100%;
+  box-sizing: border-box;
+  height: 220rpx;
+  background: #f5f6fa;
+  border-radius: 10rpx;
+  padding: 16rpx;
+  font-size: 26rpx;
+  margin-bottom: 20rpx;
+}
+.parse-card {
+  background: #f8f9fc;
+  border-radius: 14rpx;
+  padding: 20rpx;
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.parse-title { font-size: 30rpx; font-weight: 700; color: #1f2333; }
+.parse-row { font-size: 24rpx; color: #4b5563; }
+.parse-status { font-size: 22rpx; color: #8a91a3; }
 .btn-plain {
   flex: 1;
   background: #f5f6fa;
