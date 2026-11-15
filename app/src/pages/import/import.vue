@@ -179,17 +179,16 @@ export default {
           }
           this.busy = true;
           const fs = uni.getFileSystemManager();
-          const dir = `${wx.env.USER_DATA_PATH}/tt`;
-          const zip = `${dir}.zip`;
-          try { fs.mkdirSync(dir, true); } catch (e) { /* 已存在 */ }
+          const zip = `${wx.env.USER_DATA_PATH}/tt.zip`;
+          const out = `${wx.env.USER_DATA_PATH}/ttout`;
+          // 清理残留（目录或文件都可能）
+          try { fs.unlinkSync(zip); } catch (e) { /* 不存在 */ }
+          try { fs.rmdirSync(out, true); } catch (e) { /* 不存在 */ }
+          try { fs.mkdirSync(out); } catch (e) { /* 已存在 */ }
           fs.copyFile({
             srcPath: f.path,
             destPath: zip,
             success: () => {
-              // unzip 只接受目录
-              const out = `${wx.env.USER_DATA_PATH}/ttout`;
-              try { fs.rmdirSync(out, true); } catch (e) { /* 不存在 */ }
-              fs.mkdirSync(out, true);
               fs.unzip({
                 zipPath: zip,
                 targetPath: out,
