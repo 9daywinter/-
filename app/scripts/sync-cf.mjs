@@ -32,6 +32,7 @@ const cjs = [
   '"use strict";',
   segment("slots", src("src/utils/slots.js")),
   segment("notice", src("src/utils/notice.js")),
+  segment("suggest", src("src/utils/suggest.js")),
   segment("core", src("src/utils/db-core.js")),
   "module.exports = { bindStorage, localRequest, exportAll, importAll, importTimetable };",
 ].join("\n");

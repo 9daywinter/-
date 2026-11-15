@@ -6,6 +6,7 @@
 // 前端已有代码按 slice(0,10)/slice(11,16)/replace(" ","T") 解析，两种格式都兼容）。
 import { SLOT_TIMES } from "./slots";
 import { looksLikeNotice, parseNotice, resolveEventTime } from "./notice";
+import { handleSuggestionRoute } from "./suggest";
 
 const K = {
   term: "db_term",
@@ -829,10 +830,10 @@ function route(method, path, body) {
   if (method === "POST" && (path === "/api/ai/voice-upload" || path === "/api/ai/parse-timetable" || path === "/api/ai/parse-timetable-file")) {
     throw new Error("语音转文字/截图/文件解析走微信插件与 AI 能力，v1.1 开放；速记可用打字模式");
   }
-  // ---- 建议引擎 / 群组：空实现（页面按空数据自然隐藏，v2.0 再开） ----
-  if (method === "GET" && path === "/api/suggestions") return { cards: [] };
-  if (method === "GET" && path.startsWith("/api/suggestions/free")) return { days: [] };
-  if (method === "POST" && path.startsWith("/api/suggestions/")) return { ok: true };
+  // ---- 建议引擎（批奏折，v1 规则移植：权重×紧迫度×空闲段） ----
+  const sug = handleSuggestionRoute(method, path, body, { load, save, now: new Date() });
+  if (sug !== null) return sug;
+  // ---- 群组：云端共享集合实现（见 cloudfunctions/api/groups.js），本地返回空 ----
   if (path.startsWith("/api/groups")) return [];
   // ---- 备份（走统一数据路径：小程序云端模式下备份读写云端文档） ----
   if (method === "GET" && path === "/api/backup") return exportAll();
