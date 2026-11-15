@@ -10,6 +10,7 @@ const COL = "userData";
 
 // db-core.cjs.js 由 scripts/sync-cf.mjs 从 src/utils/db-core.js + slots.js 生成
 const { bindStorage, localRequest } = require("./db-core.cjs");
+const { handleGroupsRoute } = require("./groups");
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
@@ -18,7 +19,9 @@ exports.main = async (event) => {
   const body = event.body || {};
 
   // 首次调用时确保集合存在（已存在会抛错，忽略）
-  try { await db.createCollection(COL); } catch (e) { /* 已存在 */ }
+  for (const col of [COL, "groups"]) {
+    try { await db.createCollection(col); } catch (e) { /* 已存在 */ }
+  }
 
   // 读用户文档 → 内存 KV → 跑路由
   let doc = null;
@@ -31,6 +34,32 @@ exports.main = async (event) => {
     get: (k) => store[k],
     set: (k, v) => { store[k] = v; },
   });
+
+  // 组队（拼时间）：跨用户共享数据，走 groups 集合，不进个人 KV
+  if (path.startsWith("/api/groups")) {
+    const loadUserData = async (openid) => {
+      try {
+        const f = await db.collection(COL).where({ _openid: openid }).limit(1).get();
+        const st = (f.data && f.data[0] && f.data[0].store) || {};
+        return {
+          term: st.db_term || null,
+          courses: st.db_courses || [],
+          events: st.db_events || [],
+          ddls: st.db_ddls || [],
+        };
+      } catch (e) {
+        return { term: null, courses: [], events: [], ddls: [] };
+      }
+    };
+    try {
+      const out = await handleGroupsRoute(method, path, body, {
+        db, openid: OPENID, loadUserData, SLOT_TIMES,
+      });
+      if (out !== null) return { ok: true, data: out };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
 
   let ok = true;
   let out;

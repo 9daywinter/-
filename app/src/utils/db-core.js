@@ -833,8 +833,9 @@ function route(method, path, body) {
   // ---- 建议引擎（批奏折，v1 规则移植：权重×紧迫度×空闲段） ----
   const sug = handleSuggestionRoute(method, path, body, { load, save, now: new Date() });
   if (sug !== null) return sug;
-  // ---- 群组：云端共享集合实现（见 cloudfunctions/api/groups.js），本地返回空 ----
-  if (path.startsWith("/api/groups")) return [];
+  // ---- 群组：云端共享集合实现（见 cloudfunctions/api/groups.js）；单机版仅列表可用 ----
+  if (method === "GET" && path === "/api/groups") return { groups: [] };
+  if (path.startsWith("/api/groups")) throw new Error("拼时间是云端功能，请在微信小程序里用");
   // ---- 备份（走统一数据路径：小程序云端模式下备份读写云端文档） ----
   if (method === "GET" && path === "/api/backup") return exportAll();
   if (method === "POST" && path === "/api/backup") return importAll(body.json !== undefined ? body.json : body);

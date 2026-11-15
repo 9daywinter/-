@@ -10,7 +10,7 @@
       </view>
       <view class="card">
         <view class="card-title">🚪 口令进组</view>
-        <input class="inp" v-model="joinCode" placeholder="输入 8 位进组口令" />
+        <input class="inp" v-model="joinCode" placeholder="输入 4-6 位进组口令" />
         <input class="inp" v-model="joinNick" placeholder="你的昵称" />
         <view class="btn" @click="joinGroup">加入小组</view>
       </view>
