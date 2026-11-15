@@ -485,7 +485,7 @@ export function importAll(json) {
     throw new Error("不是合法的 JSON");
   }
   if (!data || data.app !== "pintime" || !Array.isArray(data.courses) || !Array.isArray(data.events) || !Array.isArray(data.ddls)) {
-    throw new Error("不是「九日冬のschedule」的备份文件");
+    throw new Error("不是「无闲日程表」的备份文件");
   }
   save(K.term, data.term || null);
   save(K.courses, data.courses);
