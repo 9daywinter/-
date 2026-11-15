@@ -265,7 +265,27 @@ const D_EVE = { 今晚: 0, 明晚: 1, 后晚: 2, 大后晚: 3 };
 
 function findDate(s, now) {
   // 返回 { date, text }，按优先级表取（idx 小者优先，同 idx 取先出现）
+  const md = (mo, da) => {
+    const d = new Date(now.getFullYear(), mo - 1, da);
+    return isNaN(d) ? null : d;
+  };
   const rules = [
+    // 0) 带标签的时间行（"⏰时间：10.28下午13:30"）值域内的日期 = 活动正主时间，
+    //    优先级最高，压过正文里的"今天（25号）报名"之类的子任务日期
+    [/[时時]间\s*[：:]\s*([^\n，。；]{2,24})/, (m, full) => {
+      const v = m[1];
+      let d = /(\d{1,2})月(\d{1,2})[日号]?/.exec(v) && md(+RegExp.$1, +RegExp.$2);
+      if (!d) {
+        // 点分隔日期（10.28），排除 2.5小时 这类小数
+        const dm = /(\d{1,2})[.．](\d{1,2})(?!\s*[小时分%倍万])/.exec(v);
+        if (dm && +dm[1] >= 1 && +dm[1] <= 12 && +dm[2] >= 1 && +dm[2] <= 31) d = md(+dm[1], +dm[2]);
+      }
+      if (!d) {
+        const wm = /(?:周|星期|礼拜)([一二三四五六日天])/.exec(v);
+        if (wm) d = addDays(dateOnly(now), (WEEKDAY_IDX[wm[1]] - pyWeekday(now) + 7) % 7);
+      }
+      return d; // null = 标签行里没有日期，落回常规规则
+    }],
     [/(大后晚|后晚|明晚|今晚)/, (m) => addDays(dateOnly(now), D_EVE[m[0]])],
     [/(大后天|后天|明天|今天|今日)/, (m) => addDays(dateOnly(now), D_REL[m[0]])],
     [/下(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(addDays(dateOnly(now), 7 - pyWeekday(now)), WEEKDAY_IDX[m[1]])],
@@ -273,17 +293,21 @@ function findDate(s, now) {
     // 裸"周X"才按"最近的未来"算
     [/(?:本|这)(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(dateOnly(now), WEEKDAY_IDX[m[1]] - pyWeekday(now))],
     [/(?:周|星期|礼拜)([一二三四五六日天])/, (m) => addDays(dateOnly(now), (WEEKDAY_IDX[m[1]] - pyWeekday(now) + 7) % 7)],
-    [/(\d{1,2})月(\d{1,2})[日号]?/, (m) => {
-      const d = new Date(now.getFullYear(), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
-      return isNaN(d) ? dateOnly(now) : d;
+    [/(\d{1,2})月(\d{1,2})[日号]?/, (m) => md(+m[1], +m[2]) || dateOnly(now)],
+    // 点分隔日期（10.28 / 10．28），排除小数/百分比语境
+    [/(\d{1,2})[.．](\d{1,2})(?!\s*[小时分%倍万])/, (m) => {
+      const mo = +m[1], da = +m[2];
+      return mo >= 1 && mo <= 12 && da >= 1 && da <= 31 ? (md(mo, da) || dateOnly(now)) : null;
     }],
   ];
   let best = null;
   rules.forEach(([pat, fn], idx) => {
     const m = pat.exec(s);
     if (!m) return;
+    const date = fn(m, s);
+    if (!date) return; // 该规则没解出日期（如标签行无日期）
     if (best == null || idx < best.idx || (idx === best.idx && m.index < best.pos)) {
-      best = { idx, pos: m.index, date: fn(m), text: m[0] };
+      best = { idx, pos: m.index, date, text: m[0] };
     }
   });
   return best ? { date: best.date, text: best.text } : { date: null, text: "" };
@@ -405,7 +429,10 @@ const TITLE_MOD_NOISE = /咱们|我们|咱|你|我|各位|全体|同学|大家�
 const RE_SALUT = /^(各位同学|同学们|全体同学|各位|大家|所有人|亲们)/;
 
 function findTitle(s) {
-  let m = TITLE_VP.exec(s);
+  // 公告类标题：【昇腾AI算子训练营重磅来袭】→ 括号内直接当标题
+  let m = /【([^】]{2,16})】/.exec(s);
+  if (m) return m[1].slice(0, 16);
+  m = TITLE_VP.exec(s);
   if (m) {
     let mod = m[1].replace(TITLE_MOD_NOISE, "").replace(/[的即将了将有要把]/g, "").trim();
     return (mod + m[2]).slice(0, 16);

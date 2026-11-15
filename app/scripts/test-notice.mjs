@@ -68,6 +68,18 @@ check("日期=11月15日", ev1 && ev1.startAt.slice(0, 10) === "2026-11-15", ev1
 check("地点含旗舰店", ev1 && /旗舰店/.test(ev1.location || ""), ev1 && ev1.location);
 check("标题可用", ev1 && ev1.title && ev1.title !== "群通知事项", ev1 && ev1.title);
 
+console.log("== parseNotice 训练营通知（用户真样本2）==");
+const ev2 = notice.parseNotice(`📢【昇腾AI算子训练营重磅来袭】
+
+📍地点：后续通知
+⏰时间：10.28下午 13:30
+
+✅重要提醒：
+👉如果后续想要参与算子赛道比赛：需要在今天（25号）之内完成算子赛道报名`, new Date(2026, 10, 15, 20));
+check("标签时间行优先", ev2 && ev2.startAt === "2026-10-28T13:30:00", ev2 && ev2.startAt);
+check("【】内做标题", ev2 && ev2.title.includes("训练营"), ev2 && ev2.title);
+check("地点=后续通知不算", ev2 && ev2.location === "" || /后续通知/.test(ev2.location || ""), ev2 && ev2.location);
+
 console.log("== resolveEventTime 速记 ==");
 const s1 = notice.resolveEventTime("明天11，叫我，有会到24点", NOW);
 check("开始=明天11:00", s1.startAt === "2026-11-16T11:00:00", s1);
