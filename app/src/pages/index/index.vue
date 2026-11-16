@@ -77,7 +77,7 @@
             v-for="s in SLOT_COUNT"
             :key="s"
             class="slot-label"
-            :style="gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx', borderBottom: 'none' } : {}"
+            :style="gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {}"
           >
             <text class="slot-no">{{ s }} <text class="slot-time">{{ SLOT_TIMES[s - 1][0] }}-{{ SLOT_TIMES[s - 1][1] }}</text></text>
           </view>
@@ -101,7 +101,7 @@
               v-for="s in SLOT_COUNT"
               :key="s"
               class="slot-cell"
-              :style="gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx', borderBottom: 'none' } : {}"
+              :style="gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {}"
             ></view>
             <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin * rowH / 60 + gapTotal()) + 'rpx', borderBottom: 'none' }"></view>
             <view
