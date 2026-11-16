@@ -190,7 +190,7 @@ function findCourseConflicts(startAt, endAt, term, courses) {
       const sMin = day === dateOnly(startAt)
         ? toDate(startAt).getHours() * 60 + toDate(startAt).getMinutes() : 0;
       const eMin = day === last
-        ? toDate(endAt).getHours() * 60 + toDate(endAt).getMinutes() + 1 : 24 * 60;
+        ? toDate(endAt).getHours() * 60 + toDate(endAt).getMinutes() : 24 * 60;
       for (const c of courses) {
         if (c.day_of_week !== (dayStart(day).getDay() || 7) || !(c.weeks || []).includes(week))
           continue;
