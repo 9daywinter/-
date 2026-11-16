@@ -15,7 +15,7 @@
       </view>
       <view class="row">
         <text class="label">总周数</text>
-        <picker :range="weekRange" :value="form.total_weeks - weekRange[0]" @change="(e) => (form.total_weeks = weekRange[0] + e.detail.value)">
+        <picker :range="weekRange" :value="form.total_weeks - weekRange[0]" @change="(e) => (form.total_weeks = weekRange[0] + Number(e.detail.value))">
           <view class="val">{{ form.total_weeks }} 周 ▾</view>
         </picker>
       </view>
