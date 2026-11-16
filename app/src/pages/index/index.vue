@@ -77,7 +77,10 @@
             v-for="s in SLOT_COUNT"
             :key="s"
             class="slot-label"
-            :style="gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {}"
+            :style="[
+              gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {},
+              s > 1 && gapSpacerH(s - 1) > 0 ? { borderTop: '1rpx solid #e3e7ef' } : {},
+            ]"
           >
             <text class="slot-no">{{ s }} <text class="slot-time">{{ SLOT_TIMES[s - 1][0] }}-{{ SLOT_TIMES[s - 1][1] }}</text></text>
           </view>
@@ -101,7 +104,10 @@
               v-for="s in SLOT_COUNT"
               :key="s"
               class="slot-cell"
-              :style="gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {}"
+              :style="[
+                gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {},
+                s > 1 && gapSpacerH(s - 1) > 0 ? { borderTop: '1rpx solid #e3e7ef' } : {},
+              ]"
             ></view>
             <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin * rowH / 60 + gapTotal()) + 'rpx', borderBottom: 'none' }"></view>
             <view
@@ -736,8 +742,15 @@ export default {
       let i = 0;
       while (i < SLOT_COUNT - 1 && hms(SLOT_TIMES[i + 1][0]) <= m) i++;
       const a = hms(SLOT_TIMES[i][0]);
+      const se = hms(SLOT_TIMES[i][1]); // 本节结束
       const b = i < SLOT_COUNT - 1 ? hms(SLOT_TIMES[i + 1][0]) : e0;
-      return padTopRpx + this.gapOffset(i + 1) + (i + (m - a) / Math.max(b - a, 1)) * H;
+      if (m <= se) {
+        // 节内：线性映射到本节的 rowH
+        return padTopRpx + this.gapOffset(i + 1) + (i + (m - a) / Math.max(se - a, 1)) * H;
+      }
+      // 课间（含午休/晚饭长间隙）：先到本节底，再按比例穿过间隙空行
+      const gapH = this.gapSpacerH(i + 1);
+      return padTopRpx + this.gapOffset(i + 1) + (i + 1) * H + ((m - se) / Math.max(b - se, 1)) * gapH;
     },
     // 所有间隙空行的总高度（底留白区起算用）
     gapTotal() {
