@@ -66,7 +66,7 @@
            时刻直接标在节次列（对齐整时线），不占额外宽度 -->
       <view class="grid-body">
         <view class="col-labels">
-          <view v-if="padTopMin > 0" class="pad-cell" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
+          <view v-if="padTopMin > 0" class="pad-cell" :style="{ height: (padTopMin / minPerSlot * rowH) + 'rpx' }"></view>
           <view
             v-for="l in hourLines"
             :key="'pt' + l.h"
@@ -99,7 +99,7 @@
           <view v-if="nowLineY !== null" class="now-line" :style="{ top: (nowLineY - 1) + 'rpx' }"></view>
           <text v-if="nowLineY !== null" class="now-tag" :style="{ top: (nowLineY - 1) + 'rpx' }">{{ nowText }}</text>
           <view v-for="d in 7" :key="d" class="day-col">
-            <view v-if="padTopMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
+            <view v-if="padTopMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padTopMin / minPerSlot * rowH) + 'rpx' }"></view>
             <view
               v-for="s in SLOT_COUNT"
               :key="s"
@@ -109,7 +109,7 @@
                 s > 1 && gapSpacerH(s - 1) > 0 ? { boxShadow: 'inset 0 1rpx 0 #e3e7ef, inset 0 -1rpx 0 #e3e7ef' } : {},
               ]"
             ></view>
-            <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin * rowH / 60 + gapTotal()) + 'rpx', borderBottom: 'none' }"></view>
+            <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin / minPerSlot * rowH) + 'rpx' }"></view>
             <view
               v-for="c in rows[d]"
               :key="c.id"
@@ -307,6 +307,8 @@ export default {
       SLOT_COUNT,
       SLOT_TIMES,
       slotGaps: SLOT_TIMES.slice(0, -1).map((t, i) => hms(SLOT_TIMES[i + 1][0]) - hms(t[1])),
+      // 一节课多少分钟（时间↔像素的换算基准，当前 45）
+      minPerSlot: hms(SLOT_TIMES[0][1]) - hms(SLOT_TIMES[0][0]),
       courseColor, // 模板里要用，必须挂到实例上
       dayRange: DAY_NAMES.map((d) => "周" + d),
       slotRange: SLOT_TIMES.map((t, i) => `第${i + 1}节 ${t[0]}-${t[1]}`),
@@ -732,29 +734,10 @@ export default {
     // 14×rowH，若全程按 rowH=60min 线性换算，23 点日程会算到列底之外被 overflow
     // 裁掉（不显示），下午日程也会比对应节次低一格。所以分三段：
     //   顶留白线性 → 课表区按节次边界分段线性（课间压缩、节内精确）→ 底留白线性
+    // 分钟 → 距网格顶的 rpx：整张表按时间线性排布（1 节 = 45 分钟 = rowH），
+    // 课间/午休按真实分钟数等比留白，所以任意时刻的位置都和它落在哪条线上严格对应
     minToYrpx(m) {
-      const s0 = SCHOOL_START();
-      const e0 = SCHOOL_END();
-      const H = this.rowH;
-      const padTopRpx = (this.padTopMin * H) / 60;
-      if (m <= s0) return ((m - this.gridStartMin) / 60) * H;
-      if (m >= e0) return padTopRpx + SLOT_COUNT * H + this.gapTotal() + ((m - e0) / 60) * H;
-      let i = 0;
-      while (i < SLOT_COUNT - 1 && hms(SLOT_TIMES[i + 1][0]) <= m) i++;
-      const a = hms(SLOT_TIMES[i][0]);
-      const se = hms(SLOT_TIMES[i][1]); // 本节结束
-      const b = i < SLOT_COUNT - 1 ? hms(SLOT_TIMES[i + 1][0]) : e0;
-      if (m <= se) {
-        // 节内：线性映射到本节的 rowH
-        return padTopRpx + this.gapOffset(i + 1) + (i + (m - a) / Math.max(se - a, 1)) * H;
-      }
-      // 课间（含午休/晚饭长间隙）：先到本节底，再按比例穿过间隙空行
-      const gapH = this.gapSpacerH(i + 1);
-      return padTopRpx + this.gapOffset(i + 1) + (i + 1) * H + ((m - se) / Math.max(b - se, 1)) * gapH;
-    },
-    // 所有间隙空行的总高度（底留白区起算用）
-    gapTotal() {
-      return this.gapOffset(SLOT_COUNT + 1);
+      return ((m - this.gridStartMin) / this.minPerSlot) * this.rowH;
     },
     timeToY(t) {
       return this.minToYrpx(hms(t));
@@ -851,10 +834,9 @@ export default {
       this.week = Math.min(Math.max(this.week + delta, 1), total);
       this.applyRows();
     },
-    // 长间隙（午休/晚饭）的额外空行高度（rpx）：间隙 > 15 分钟时，多出的部分变成空白
+    // 课间/午休空白高度（rpx）：按真实分钟等比，同样是时间轴的一部分
     gapSpacerH(s) {
-      const gap = this.slotGaps[s - 1] || 0;
-      return gap > 15 ? Math.round((gap - 5) / 60 * this.rowH) : 0;
+      return ((this.slotGaps[s - 1] || 0) / this.minPerSlot) * this.rowH;
     },
     // 第 1~s-1 节之间累积的空行总高度
     gapOffset(s) {
@@ -863,15 +845,13 @@ export default {
       return sum;
     },
     courseStyle(c) {
-      const ROW_H = this.rowH;
-      const firstSlotY = (SCHOOL_START() - this.gridStartMin) / 60 * ROW_H;
-      const off = this.gapOffset(c.start_slot); // 午休/晚饭空行
-      // 跨间隙的课（不太可能，但兜底）：中间的空行也计入高度
-      let midGaps = 0;
-      for (let i = c.start_slot; i < c.end_slot; i++) midGaps += this.gapSpacerH(i);
+      const t0 = this.SLOT_TIMES[c.start_slot - 1][0];
+      const t1 = this.SLOT_TIMES[Math.min(c.end_slot, this.SLOT_TIMES.length) - 1][1];
+      const y0 = this.minToYrpx(hms(t0));
+      const y1 = this.minToYrpx(hms(t1));
       return {
-        top: firstSlotY + (c.start_slot - 1) * ROW_H + off + 4 + "rpx", // 上留 4rpx，格子线不被压住
-        height: (c.end_slot - c.start_slot + 1) * ROW_H + midGaps - 10 + "rpx", // 上下各留白，格线可见
+        top: y0 + 4 + "rpx",     // 上留 4rpx，格子线不被压住
+        height: Math.max(y1 - y0 - 10, 40) + "rpx", // 上下各留白，格线可见
         background: courseColor(c.name)[0],
       };
     },
