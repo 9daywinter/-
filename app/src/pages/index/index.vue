@@ -79,7 +79,7 @@
             class="slot-label"
             :style="[
               gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {},
-              s > 1 && gapSpacerH(s - 1) > 0 ? { borderTop: '1rpx solid #e3e7ef' } : {},
+              s > 1 && gapSpacerH(s - 1) > 0 ? { boxShadow: 'inset 0 1rpx 0 #e3e7ef, inset 0 -1rpx 0 #e3e7ef' } : {},
             ]"
           >
             <text class="slot-no">{{ s }} <text class="slot-time">{{ SLOT_TIMES[s - 1][0] }}-{{ SLOT_TIMES[s - 1][1] }}</text></text>
@@ -106,7 +106,7 @@
               class="slot-cell"
               :style="[
                 gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {},
-                s > 1 && gapSpacerH(s - 1) > 0 ? { borderTop: '1rpx solid #e3e7ef' } : {},
+                s > 1 && gapSpacerH(s - 1) > 0 ? { boxShadow: 'inset 0 1rpx 0 #e3e7ef, inset 0 -1rpx 0 #e3e7ef' } : {},
               ]"
             ></view>
             <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin * rowH / 60 + gapTotal()) + 'rpx', borderBottom: 'none' }"></view>
@@ -1248,12 +1248,11 @@ export default {
 }
 .slot-label {
   position: relative;
-  box-sizing: border-box; /* 底边计入 100rpx，与 .slot-cell 行高一致 */
   height: 100rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1rpx solid #e3e7ef;
+  box-shadow: inset 0 -1rpx 0 #e3e7ef; /* 横线用阴影画，不占高度 */
 }
 .slot-no {
   font-size: 26rpx;
@@ -1293,9 +1292,8 @@ export default {
   box-shadow: inset 1rpx 0 0 #e3e7ef; /* 同 .col-day：线不占宽度，两行等宽 */
 }
 .slot-cell {
-  box-sizing: border-box; /* border-bottom 计入 100rpx，否则每行实际 101rpx，课程块逐行偏上卡线 */
   height: 100rpx;
-  border-bottom: 1rpx solid #e3e7ef;
+  box-shadow: inset 0 -1rpx 0 #e3e7ef; /* 同 .slot-label：横线不占高度，两列必然同高 */
 }
 /* 留白区（课前/课后）占位：不着色不强调"无课"，时刻交给 .pad-time 标注 */
 /* 留白区时刻标签：贴整时线右对齐，比节次时刻大一档 */
