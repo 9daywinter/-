@@ -777,7 +777,7 @@ export default {
       }
       const y0 = this.minToYrpx(v0);
       const y1 = this.minToYrpx(v1);
-      return { top: y0 + 2, h: Math.max(y1 - y0 - 8, 42) }; // +2 露出上方整时线
+      return { top: y0 + 4, h: Math.max(y1 - y0 - 10, 40) }; // 上留 4rpx，不压格线
     },
     eventStyle(ev) {
       const g = this.evGeom(ev);
@@ -870,8 +870,8 @@ export default {
       let midGaps = 0;
       for (let i = c.start_slot; i < c.end_slot; i++) midGaps += this.gapSpacerH(i);
       return {
-        top: firstSlotY + (c.start_slot - 1) * ROW_H + off + 2 + "rpx", // +2 露出格子顶线
-        height: (c.end_slot - c.start_slot + 1) * ROW_H + midGaps - 10 + "rpx",
+        top: firstSlotY + (c.start_slot - 1) * ROW_H + off + 4 + "rpx", // 上留 4rpx，格子线不被压住
+        height: (c.end_slot - c.start_slot + 1) * ROW_H + midGaps - 10 + "rpx", // 上下各留白，格线可见
         background: courseColor(c.name)[0],
       };
     },
@@ -1161,7 +1161,8 @@ export default {
 }
 .col-day {
   flex: 1;
-  border-left: 1rpx solid transparent; /* 与 .day-col 的左边框同几何，周几文字才能对齐格子 */
+  min-width: 0; /* 不被 DDL 药丸的 min-content 撑宽，否则各列宽度不均就错位 */
+  box-shadow: inset 1rpx 0 0 #e3e7ef; /* 分隔线用阴影画：不占布局宽度 */
   text-align: center;
   padding: 12rpx 0;
   font-size: 26rpx;
@@ -1179,9 +1180,11 @@ export default {
   align-items: center;
   gap: 4rpx;
   width: 100%;
+  min-width: 0;
 }
 .ddl-chip {
   max-width: 92%;
+  min-width: 0;
   font-size: 18rpx;
   line-height: 1.5;
   color: #fff;
@@ -1246,7 +1249,6 @@ export default {
 }
 .slot-label {
   position: relative;
-  box-sizing: border-box; /* border-left 计入宽度，与表头 132rpx 占位对齐 */
   height: 100rpx;
   display: flex;
   align-items: center;
@@ -1287,7 +1289,8 @@ export default {
 .day-col {
   position: relative;
   flex: 1;
-  border-left: 1rpx solid #e3e7ef;
+  min-width: 0;
+  box-shadow: inset 1rpx 0 0 #e3e7ef; /* 同 .col-day：线不占宽度，两行等宽 */
 }
 .slot-cell {
   box-sizing: border-box; /* border-bottom 计入 100rpx，否则每行实际 101rpx，课程块逐行偏上卡线 */
