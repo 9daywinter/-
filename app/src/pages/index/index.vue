@@ -1245,6 +1245,7 @@ export default {
 }
 .slot-label {
   position: relative;
+  box-sizing: border-box; /* border-left 计入宽度，与表头 132rpx 占位对齐 */
   height: 100rpx;
   display: flex;
   align-items: center;
@@ -1288,6 +1289,7 @@ export default {
   border-left: 1rpx solid #e3e7ef;
 }
 .slot-cell {
+  box-sizing: border-box; /* border-bottom 计入 100rpx，否则每行实际 101rpx，课程块逐行偏上卡线 */
   height: 100rpx;
   border-bottom: 1rpx solid #e3e7ef;
 }
