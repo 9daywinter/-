@@ -96,8 +96,8 @@
             ></view>
           </view>
           <!-- 现在时刻线：线沉底不压字，时间胶囊独立浮在左端（每 30 秒走一格） -->
-          <view v-if="nowLineY !== null" class="now-line" :style="{ top: nowLineY + 'rpx' }"></view>
-          <text v-if="nowLineY !== null" class="now-tag" :style="{ top: nowLineY + 'rpx' }">{{ nowText }}</text>
+          <view v-if="nowLineY !== null" class="now-line" :style="{ top: (nowLineY - 1) + 'rpx' }"></view>
+          <text v-if="nowLineY !== null" class="now-tag" :style="{ top: (nowLineY - 1) + 'rpx' }">{{ nowText }}</text>
           <view v-for="d in 7" :key="d" class="day-col">
             <view v-if="padTopMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
             <view
