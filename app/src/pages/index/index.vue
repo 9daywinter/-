@@ -777,7 +777,7 @@ export default {
       }
       const y0 = this.minToYrpx(v0);
       const y1 = this.minToYrpx(v1);
-      return { top: y0, h: Math.max(y1 - y0 - 6, 44) };
+      return { top: y0 + 2, h: Math.max(y1 - y0 - 8, 42) }; // +2 露出上方整时线
     },
     eventStyle(ev) {
       const g = this.evGeom(ev);
@@ -870,8 +870,8 @@ export default {
       let midGaps = 0;
       for (let i = c.start_slot; i < c.end_slot; i++) midGaps += this.gapSpacerH(i);
       return {
-        top: firstSlotY + (c.start_slot - 1) * ROW_H + off + "rpx",
-        height: (c.end_slot - c.start_slot + 1) * ROW_H + midGaps - 8 + "rpx",
+        top: firstSlotY + (c.start_slot - 1) * ROW_H + off + 2 + "rpx", // +2 露出格子顶线
+        height: (c.end_slot - c.start_slot + 1) * ROW_H + midGaps - 10 + "rpx",
         background: courseColor(c.name)[0],
       };
     },
@@ -1161,6 +1161,7 @@ export default {
 }
 .col-day {
   flex: 1;
+  border-left: 1rpx solid transparent; /* 与 .day-col 的左边框同几何，周几文字才能对齐格子 */
   text-align: center;
   padding: 12rpx 0;
   font-size: 26rpx;
