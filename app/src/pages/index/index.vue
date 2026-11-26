@@ -1246,6 +1246,9 @@ export default {
   flex-shrink: 0;
   position: relative; /* 留白区时刻标签的定位包含块 */
 }
+.pad-cell {
+  box-shadow: inset 0 -1rpx 0 #e3e7ef; /* 与右侧留白格同一根线 */
+}
 .slot-label {
   position: relative;
   height: 100rpx;
