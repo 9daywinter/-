@@ -74,9 +74,16 @@
             class="pad-time"
             :style="{ top: l.y + 'rpx' }"
           >{{ l.h }}:00</view>
-          <view v-for="s in SLOT_COUNT" :key="s" class="slot-label">
+          <view
+            v-for="s in SLOT_COUNT"
+            :key="s"
+            class="slot-label"
+            :style="[
+              gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {},
+              s > 1 && gapSpacerH(s - 1) > 0 ? { borderTop: '1rpx solid #e3e7ef' } : {},
+            ]"
+          >
             <text class="slot-no">{{ s }} <text class="slot-time">{{ SLOT_TIMES[s - 1][0] }}-{{ SLOT_TIMES[s - 1][1] }}</text></text>
-            <text v-if="slotGaps[s - 1] > 0" class="slot-gap">课间{{ slotGaps[s - 1] }}分</text>
           </view>
         </view>
         <view class="days">
@@ -94,8 +101,16 @@
           <text v-if="nowLineY !== null" class="now-tag" :style="{ top: nowLineY + 'rpx' }">{{ nowText }}</text>
           <view v-for="d in 7" :key="d" class="day-col">
             <view v-if="padTopMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padTopMin * rowH / 60) + 'rpx' }"></view>
-            <view v-for="s in SLOT_COUNT" :key="s" class="slot-cell"></view>
-            <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin * rowH / 60) + 'rpx', borderBottom: 'none' }"></view>
+            <view
+              v-for="s in SLOT_COUNT"
+              :key="s"
+              class="slot-cell"
+              :style="[
+                gapSpacerH(s) > 0 ? { marginBottom: gapSpacerH(s) + 'rpx' } : {},
+                s > 1 && gapSpacerH(s - 1) > 0 ? { borderTop: '1rpx solid #e3e7ef' } : {},
+              ]"
+            ></view>
+            <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin * rowH / 60 + gapTotal()) + 'rpx', borderBottom: 'none' }"></view>
             <view
               v-for="c in rows[d]"
               :key="c.id"
@@ -724,12 +739,23 @@ export default {
       const H = this.rowH;
       const padTopRpx = (this.padTopMin * H) / 60;
       if (m <= s0) return ((m - this.gridStartMin) / 60) * H;
-      if (m >= e0) return padTopRpx + SLOT_COUNT * H + ((m - e0) / 60) * H;
+      if (m >= e0) return padTopRpx + SLOT_COUNT * H + this.gapTotal() + ((m - e0) / 60) * H;
       let i = 0;
       while (i < SLOT_COUNT - 1 && hms(SLOT_TIMES[i + 1][0]) <= m) i++;
       const a = hms(SLOT_TIMES[i][0]);
+      const se = hms(SLOT_TIMES[i][1]); // 本节结束
       const b = i < SLOT_COUNT - 1 ? hms(SLOT_TIMES[i + 1][0]) : e0;
-      return padTopRpx + (i + (m - a) / Math.max(b - a, 1)) * H;
+      if (m <= se) {
+        // 节内：线性映射到本节的 rowH
+        return padTopRpx + this.gapOffset(i + 1) + (i + (m - a) / Math.max(se - a, 1)) * H;
+      }
+      // 课间（含午休/晚饭长间隙）：先到本节底，再按比例穿过间隙空行
+      const gapH = this.gapSpacerH(i + 1);
+      return padTopRpx + this.gapOffset(i + 1) + (i + 1) * H + ((m - se) / Math.max(b - se, 1)) * gapH;
+    },
+    // 所有间隙空行的总高度（底留白区起算用）
+    gapTotal() {
+      return this.gapOffset(SLOT_COUNT + 1);
     },
     timeToY(t) {
       return this.minToYrpx(hms(t));
@@ -826,13 +852,27 @@ export default {
       this.week = Math.min(Math.max(this.week + delta, 1), total);
       this.applyRows();
     },
+    // 长间隙（午休/晚饭）的额外空行高度（rpx）：间隙 > 15 分钟时，多出的部分变成空白
+    gapSpacerH(s) {
+      const gap = this.slotGaps[s - 1] || 0;
+      return gap > 15 ? Math.round((gap - 5) / 60 * this.rowH) : 0;
+    },
+    // 第 1~s-1 节之间累积的空行总高度
+    gapOffset(s) {
+      let sum = 0;
+      for (let i = 1; i < s; i++) sum += this.gapSpacerH(i);
+      return sum;
+    },
     courseStyle(c) {
-      const ROW_H = this.rowH; // rpx，一节课占的行高（竖屏 100 / 宽屏 78）
-      // 第 1 节课 在 (SCHOOL_START - gridStartMin) 分钟之后，(start_slot-1) 节之间是一高一低
+      const ROW_H = this.rowH;
       const firstSlotY = (SCHOOL_START() - this.gridStartMin) / 60 * ROW_H;
+      const off = this.gapOffset(c.start_slot); // 午休/晚饭空行
+      // 跨间隙的课（不太可能，但兜底）：中间的空行也计入高度
+      let midGaps = 0;
+      for (let i = c.start_slot; i < c.end_slot; i++) midGaps += this.gapSpacerH(i);
       return {
-        top: firstSlotY + (c.start_slot - 1) * ROW_H + "rpx",
-        height: (c.end_slot - c.start_slot + 1) * ROW_H - 8 + "rpx",
+        top: firstSlotY + (c.start_slot - 1) * ROW_H + off + "rpx",
+        height: (c.end_slot - c.start_slot + 1) * ROW_H + midGaps - 8 + "rpx",
         background: courseColor(c.name)[0],
       };
     },
@@ -1206,6 +1246,7 @@ export default {
 }
 .slot-label {
   position: relative;
+  box-sizing: border-box; /* border-left 计入宽度，与表头 132rpx 占位对齐 */
   height: 100rpx;
   display: flex;
   align-items: center;
@@ -1249,6 +1290,7 @@ export default {
   border-left: 1rpx solid #e3e7ef;
 }
 .slot-cell {
+  box-sizing: border-box; /* border-bottom 计入 100rpx，否则每行实际 101rpx，课程块逐行偏上卡线 */
   height: 100rpx;
   border-bottom: 1rpx solid #e3e7ef;
 }
