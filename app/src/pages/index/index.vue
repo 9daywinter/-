@@ -109,7 +109,7 @@
                 s > 1 && gapSpacerH(s - 1) > 0 ? { boxShadow: 'inset 0 1rpx 0 #e3e7ef, inset 0 -1rpx 0 #e3e7ef' } : {},
               ]"
             ></view>
-            <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin / minPerSlot * rowH) + 'rpx' }"></view>
+            <view v-if="padBottomMin > 0" class="slot-cell pad-cell-day" :style="{ height: (padBottomMin / minPerSlot * rowH + gapTotal()) + 'rpx' }"></view>
             <view
               v-for="c in rows[d]"
               :key="c.id"
@@ -734,10 +734,29 @@ export default {
     // 14×rowH，若全程按 rowH=60min 线性换算，23 点日程会算到列底之外被 overflow
     // 裁掉（不显示），下午日程也会比对应节次低一格。所以分三段：
     //   顶留白线性 → 课表区按节次边界分段线性（课间压缩、节内精确）→ 底留白线性
-    // 分钟 → 距网格顶的 rpx：整张表按时间线性排布（1 节 = 45 分钟 = rowH），
-    // 课间/午休按真实分钟数等比留白，所以任意时刻的位置都和它落在哪条线上严格对应
+    // 分钟 → 距网格顶的 rpx。
+    // 节内按比例（45 分钟 = rowH，时刻位置精确）；短课间压缩为 0 不占空白；
+    // 长间隙（午休/晚饭）按真实分钟等比留白，位置同样精确。
     minToYrpx(m) {
-      return ((m - this.gridStartMin) / this.minPerSlot) * this.rowH;
+      const H = this.rowH;
+      const s0 = SCHOOL_START();
+      const e0 = SCHOOL_END();
+      const padTopRpx = (this.padTopMin / this.minPerSlot) * H;
+      if (m <= s0) return ((m - this.gridStartMin) / this.minPerSlot) * H;
+      if (m >= e0) return padTopRpx + SLOT_COUNT * H + this.gapTotal() + ((m - e0) / this.minPerSlot) * H;
+      let i = 0;
+      while (i < SLOT_COUNT - 1 && hms(SLOT_TIMES[i + 1][0]) <= m) i++;
+      const a = hms(SLOT_TIMES[i][0]);
+      const se = hms(SLOT_TIMES[i][1]);
+      const base = padTopRpx + this.gapOffset(i + 1) + i * H;
+      if (m <= se) return base + ((m - a) / Math.max(se - a, 1)) * H; // 节内
+      const b = i < SLOT_COUNT - 1 ? hms(SLOT_TIMES[i + 1][0]) : e0;
+      const gapH = this.gapSpacerH(i + 1);
+      if (gapH <= 0) return base + H; // 短课间：直接压到本节底线
+      return base + H + ((m - se) / Math.max(b - se, 1)) * gapH; // 长间隙
+    },
+    gapTotal() {
+      return this.gapOffset(SLOT_COUNT + 1);
     },
     timeToY(t) {
       return this.minToYrpx(hms(t));
@@ -834,9 +853,11 @@ export default {
       this.week = Math.min(Math.max(this.week + delta, 1), total);
       this.applyRows();
     },
-    // 课间/午休空白高度（rpx）：按真实分钟等比，同样是时间轴的一部分
+    // 空白高度（rpx）：只有午休/晚饭这种长间隙才留白（≥30 分钟，等比换算）；
+    // 普通课间一律 0，不把课表撑开
     gapSpacerH(s) {
-      return ((this.slotGaps[s - 1] || 0) / this.minPerSlot) * this.rowH;
+      const gap = this.slotGaps[s - 1] || 0;
+      return gap >= 30 ? (gap / this.minPerSlot) * this.rowH : 0;
     },
     // 第 1~s-1 节之间累积的空行总高度
     gapOffset(s) {
