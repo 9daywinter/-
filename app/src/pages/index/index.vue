@@ -1162,7 +1162,6 @@ export default {
 .col-day {
   flex: 1;
   min-width: 0; /* 不被 DDL 药丸的 min-content 撑宽，否则各列宽度不均就错位 */
-  box-shadow: inset 1rpx 0 0 #e3e7ef; /* 分隔线用阴影画：不占布局宽度 */
   text-align: center;
   padding: 12rpx 0;
   font-size: 26rpx;
@@ -1249,6 +1248,7 @@ export default {
 }
 .slot-label {
   position: relative;
+  box-sizing: border-box; /* 底边计入 100rpx，与 .slot-cell 行高一致 */
   height: 100rpx;
   display: flex;
   align-items: center;
